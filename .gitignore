@@ -21,3 +21,4 @@ amazon-gamelift-streams-react-starter-frontend/src/**/*.js.map
 # But keep the gamelift-streams-websdk JS files
 !amazon-gamelift-streams-react-starter-frontend/src/gamelift-streams-websdk/*.js
 
+Config
