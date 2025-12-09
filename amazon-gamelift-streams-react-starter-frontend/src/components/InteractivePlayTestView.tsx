@@ -87,6 +87,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   // IVS Stage State
   const [participantStreams, setParticipantStreams] = useState<Map<string, ParticipantStreamInfo>>(new Map());
   const [gameplayStream, setGameplayStream] = useState<RemoteStageStream | null>(null);
+  const [gameplayAudioStream, setGameplayAudioStream] = useState<RemoteStageStream | null>(null);
   const [webcamStream, setWebcamStream] = useState<RemoteStageStream | null>(null);
   const [isGameplayBroadcasting, setIsGameplayBroadcasting] = useState(false);
   const [isWebcamBroadcasting, setIsWebcamBroadcasting] = useState(false);
@@ -1443,6 +1444,8 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
         console.log(`Received gameplay ${trackKind} stream`);
         if (trackKind === 'video') {
           setGameplayStream(stream);
+        } else if (trackKind === 'audio') {
+          setGameplayAudioStream(stream);
         }
       }
       // Handle player webcam streams (from current controller)
@@ -2555,23 +2558,33 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
                 <video
                   key={gameplayStream?.mediaStreamTrack?.id || 'gameplay-video'}
                   ref={(el) => {
-                    if (el && gameplayStream?.mediaStreamTrack) {
-                      console.log('Setting up gameplay video element with track:', gameplayStream.mediaStreamTrack.id);
+                    if (el) {
                       ivsGameplayVideoRef.current = el;
                       let mediaStream = el.srcObject as MediaStream;
                       if (!mediaStream) {
                         mediaStream = new MediaStream();
                         el.srcObject = mediaStream;
-                        console.log('Created new MediaStream for gameplay video');
+                        console.log('Created new MediaStream for gameplay');
                       }
 
-                      const existingTracks = mediaStream.getVideoTracks();
-                      const trackExists = existingTracks.some(t => t.id === gameplayStream.mediaStreamTrack.id);
-                      if (!trackExists) {
-                        mediaStream.addTrack(gameplayStream.mediaStreamTrack);
-                        console.log('Added gameplay video track to MediaStream');
-                      } else {
-                        console.log('Gameplay video track already exists in MediaStream');
+                      // Add video track if available
+                      if (gameplayStream?.mediaStreamTrack) {
+                        const existingVideoTracks = mediaStream.getVideoTracks();
+                        const videoTrackExists = existingVideoTracks.some(t => t.id === gameplayStream.mediaStreamTrack.id);
+                        if (!videoTrackExists) {
+                          mediaStream.addTrack(gameplayStream.mediaStreamTrack);
+                          console.log('Added gameplay video track to MediaStream');
+                        }
+                      }
+
+                      // Add audio track if available
+                      if (gameplayAudioStream?.mediaStreamTrack) {
+                        const existingAudioTracks = mediaStream.getAudioTracks();
+                        const audioTrackExists = existingAudioTracks.some(t => t.id === gameplayAudioStream.mediaStreamTrack.id);
+                        if (!audioTrackExists) {
+                          mediaStream.addTrack(gameplayAudioStream.mediaStreamTrack);
+                          console.log('Added gameplay audio track to MediaStream');
+                        }
                       }
                     }
                   }}
