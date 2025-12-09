@@ -1,0 +1,142 @@
+/**
+ * PlayerView Specific Styles
+ * Styles unique to PlayerView that aren't shared with other views
+ */
+
+/* Broadcast Status (specific to PlayerView) */
+.broadcast-status {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(15, 23, 41, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(78, 205, 196, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+  font-size: 0.9rem;
+  z-index: 10;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.gameplay-video-container .broadcast-status {
+  position: static;
+}
+
+/* Attach Input Overlay */
+.attach-input-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.attach-input-button {
+  padding: 1rem 2rem;
+  border: 2px solid white;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+  margin-bottom: 1rem;
+}
+
+.attach-input-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+/* Media Controls (specific positioning for PlayerView) */
+.media-controls {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 15;
+}
+
+.media-control-btn {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: white;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.media-control-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.08);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.media-control-btn:active {
+  transform: scale(1);
+}
+
+.media-control-btn:focus-visible {
+  outline: 2px solid rgba(78, 205, 196, 0.8);
+  outline-offset: 2px;
+}
+
+.media-control-btn.muted {
+  background: rgba(220, 53, 69, 0.3);
+  border-color: rgba(220, 53, 69, 0.5);
+}
+
+.media-control-btn.muted:hover {
+  background: rgba(220, 53, 69, 0.4);
+  border-color: rgba(220, 53, 69, 0.6);
+}
+
+.media-control-btn i {
+  font-size: 20px;
+}
+
+/* Input Status Indicators */
+.input-status-indicator {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+  z-index: 5;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.input-status-indicator.inactive {
+  background: rgba(15, 23, 41, 0.85);
+  border: 1px solid rgba(78, 205, 196, 0.3);
+}
+
+.input-status-indicator.active {
+  background: rgba(76, 175, 80, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}

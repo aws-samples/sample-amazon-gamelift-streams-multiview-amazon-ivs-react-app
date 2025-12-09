@@ -1,0 +1,800 @@
+/**
+ * Shared View Styles
+ * Common styles for PlayerView, ViewerView, TwitchBroadcastView, and InteractivePlayTestView
+ */
+
+/* ========================================
+   Animations
+   ======================================== */
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 5px rgba(220, 53, 69, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(220, 53, 69, 0.8), 0 0 30px rgba(220, 53, 69, 0.6);
+  }
+
+  100% {
+    box-shadow: 0 0 5px rgba(220, 53, 69, 0.5);
+  }
+}
+
+/* ========================================
+   Container Layouts
+   ======================================== */
+
+.view-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #1a1a2e;
+}
+
+.view-header {
+  background-color: #0f1729;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.view-header h2 {
+  color: #e94560;
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.view-header .username {
+  color: #4ecdc4;
+  font-size: 1rem;
+}
+
+.view-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ========================================
+   Button Groups
+   ======================================== */
+
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.settings-button,
+.sign-out-button {
+  background: rgba(15, 52, 96, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(78, 205, 196, 0.3);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.settings-button:hover,
+.sign-out-button:hover {
+  background: rgba(26, 77, 122, 0.9);
+  border-color: rgba(78, 205, 196, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================
+   Gameplay Area
+   ======================================== */
+
+.gameplay-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background-color: #1a1a2e;
+}
+
+.gameplay-video-container {
+  flex: 1;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ========================================
+   Sidebar
+   ======================================== */
+
+.sidebar {
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  background-color: #16213e;
+  transition: transform 0.3s ease;
+}
+
+.sidebar.collapsed {
+  transform: translateX(100%);
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 20;
+}
+
+.sidebar-header {
+  background-color: #0f1729;
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(78, 205, 196, 0.2);
+}
+
+.sidebar-header h3 {
+  color: #4ecdc4;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.collapse-btn {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.collapse-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.collapse-btn i {
+  font-size: 14px;
+}
+
+.expand-sidebar-btn {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.expand-sidebar-btn:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.5);
+  transform: scale(1.05);
+}
+
+.expand-sidebar-btn i {
+  font-size: 16px;
+}
+
+/* ========================================
+   Video Containers
+   ======================================== */
+
+.video-container {
+  position: relative;
+  background-color: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.webcam-video-container {
+  height: 200px;
+  margin: 1rem 1rem 0 1rem;
+  border: 2px solid #0f3460;
+  width: calc(100% - 2rem);
+  max-width: calc(100% - 2rem);
+}
+
+.webcam-video-container video {
+  object-fit: cover;
+}
+
+/* ========================================
+   Top Right Controls
+   ======================================== */
+
+.top-right-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 15;
+}
+
+/* ========================================
+   Stream Status
+   ======================================== */
+
+.stream-status {
+  background: rgba(15, 23, 41, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(78, 205, 196, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+  font-size: 0.9rem;
+  z-index: 10;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #dc3545;
+  animation: pulse 1.5s infinite;
+}
+
+.status-dot.live {
+  background-color: #28a745;
+}
+
+.status-dot.inactive {
+  background-color: #6c757d;
+  animation: none;
+}
+
+/* ========================================
+   Loading Overlay
+   ======================================== */
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(26, 26, 46, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  z-index: 10;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.loading-text {
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  opacity: 0.8;
+}
+
+/* ========================================
+   Offline Message
+   ======================================== */
+
+.offline-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #b8a9d1;
+  z-index: 5;
+}
+
+.offline-message h3 {
+  color: #e94560;
+  margin-bottom: 0.5rem;
+}
+
+.offline-message p {
+  color: #b8a9d1;
+  font-size: 0.9rem;
+}
+
+.offline-message-small {
+  font-size: 0.8rem;
+  margin-top: 1rem;
+}
+
+/* ========================================
+   Chat Container
+   ======================================== */
+
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1rem;
+}
+
+/* ========================================
+   Error Banner
+   ======================================== */
+
+.error-banner {
+  background: rgba(220, 53, 69, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.5rem 1rem;
+  margin: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.error-banner-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.error-dismiss-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0 0.5rem;
+  margin-left: 1rem;
+}
+
+.error-banner-small {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.error-clear-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-left: 0.5rem;
+}
+
+/* ========================================
+   Subscribe Button
+   ======================================== */
+
+.subscribe-button {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(233, 69, 96, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.subscribe-button:hover:not(:disabled) {
+  background: rgba(233, 69, 96, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+.subscribe-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.subscribe-button:disabled {
+  background: rgba(78, 205, 196, 0.9);
+  border-color: rgba(255, 255, 255, 0.3);
+  cursor: default;
+}
+
+.subscribe-button i {
+  font-size: 18px;
+}
+
+/* ========================================
+   Fullscreen Toggle Button
+   ======================================== */
+
+.fullscreen-toggle-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 15;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.fullscreen-toggle-btn:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.5);
+  transform: scale(1.05);
+}
+
+.fullscreen-toggle-btn i {
+  font-size: 16px;
+}
+
+/* ========================================
+   Input Indicator
+   ======================================== */
+
+.input-indicator {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 41, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(78, 205, 196, 0.3);
+  padding: 0.75rem 1.5rem;
+  border-radius: 24px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  z-index: 15;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.input-indicator i {
+  font-size: 1.1rem;
+  color: #4ecdc4;
+}
+
+.input-indicator.disabled {
+  border-color: rgba(220, 53, 69, 0.3);
+}
+
+.input-indicator.disabled i {
+  color: #dc3545;
+}
+
+/* ========================================
+   Modal Styles
+   ======================================== */
+
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+}
+
+.modal-content-custom {
+  background: rgba(22, 33, 62, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(78, 205, 196, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  color: #ffffff;
+}
+
+.modal-header-custom {
+  background: rgba(15, 23, 41, 0.7);
+  border-bottom: 1px solid rgba(78, 205, 196, 0.3);
+  border-radius: 12px 12px 0 0;
+  padding: 1.25rem;
+}
+
+.modal-title-custom {
+  color: #4ecdc4;
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+.modal-body-custom {
+  background: transparent;
+  padding: 1.5rem;
+}
+
+.modal-footer-custom {
+  background: rgba(15, 23, 41, 0.7);
+  border-top: 1px solid rgba(78, 205, 196, 0.3);
+  border-radius: 0 0 12px 12px;
+  padding: 1.25rem;
+}
+
+/* ========================================
+   Tab Navigation
+   ======================================== */
+
+.nav-tabs-custom {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  margin-bottom: 0;
+  background: transparent;
+  border-bottom: 1px solid rgba(78, 205, 196, 0.2);
+}
+
+.nav-link-custom {
+  cursor: pointer;
+  border: none;
+  background: transparent !important;
+  color: #b8a9d1 !important;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.nav-link-custom:hover {
+  color: #4ecdc4 !important;
+  border-bottom-color: rgba(78, 205, 196, 0.3);
+  background: transparent !important;
+}
+
+.nav-link-custom.active {
+  color: #4ecdc4 !important;
+  border-bottom-color: #4ecdc4;
+  background: transparent !important;
+}
+
+/* ========================================
+   Form Elements
+   ======================================== */
+
+.form-text-muted {
+  color: #b8a9d1;
+  opacity: 0.8;
+}
+
+.alert-info-custom {
+  background: rgba(23, 162, 184, 0.2);
+  border: 1px solid rgba(23, 162, 184, 0.4);
+  color: #4ecdc4;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ========================================
+   Card Styles
+   ======================================== */
+
+.card-custom {
+  background: rgba(15, 23, 41, 0.6);
+  border: 1px solid rgba(78, 205, 196, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.card-custom:hover {
+  border-color: rgba(78, 205, 196, 0.4);
+  background: rgba(15, 23, 41, 0.8);
+}
+
+.card-title-custom {
+  color: #4ecdc4;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.card-text-custom {
+  color: #b8a9d1;
+  font-size: 0.85rem;
+}
+
+/* ========================================
+   Form Switch
+   ======================================== */
+
+.form-switch-large {
+  font-size: 1.5rem;
+}
+
+.form-check-input-custom {
+  cursor: pointer;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 300px;
+  }
+
+  .view-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .button-group {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 576px) {
+  .sidebar {
+    width: 100%;
+  }
+
+  .view-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .button-group {
+    width: 100%;
+  }
+}
+
+
+/* Modal Dialog Z-Index Fix */
+.modal.show {
+  z-index: 9999;
+}
+
+.modal-dialog {
+  z-index: 10000;
+}
+
+/* Fix webcam overflow in PlayerView and ViewerView sidebars */
+/* Add margin to webcam containers in non-interactive views */
+.playtest-feedback-container .webcam-video-container,
+.view-container .webcam-video-container {
+  margin: 0 1rem 0 1rem;
+}
+
+/* Ensure InteractivePlayTestView keeps margin: 0 and uses aspect-ratio */
+.playtester-container .webcam-video-container {
+  margin: 0 !important;
+  height: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Play Button Overlay for ViewerView */
+.play-button-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.3s ease;
+}
+
+.play-button-overlay:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.play-button {
+  background: none;
+  border: none;
+  color: #4ecdc4;
+  font-size: 120px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-button:hover {
+  color: #e94560;
+  transform: scale(1.1);
+}
+
+.play-button:active {
+  transform: scale(1.05);
+}
+
+.play-button i {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+}
+
+.play-button-text {
+  color: white;
+  font-size: 1.25rem;
+  margin-top: 1rem;
+  font-weight: 500;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
