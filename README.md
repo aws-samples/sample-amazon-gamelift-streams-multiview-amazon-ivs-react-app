@@ -150,37 +150,23 @@ Navigate to `/twitch-broadcast` while signed in as `player@ivs.rocks` to access 
 
 **Note:** The Twitch Broadcast View requires a valid Twitch stream key, which can be obtained from your Twitch Creator Dashboard.
 
-### Interactive Play Testing Views
+### Interactive Play Testing (Unified View)
 
-The application includes specialized views for conducting interactive play testing sessions with real-time bidirectional communication:
+The application includes a unified view for conducting interactive play testing sessions with real-time bidirectional communication. This view enables game developers to gather immediate feedback during gameplay sessions, with multiple participants joining simultaneously to create a virtual focus group environment for play testing.
 
-#### Play Tester View
+**Key Features:**
 
-Sign in with `player@ivs.rocks` and navigate to the Play Tester view from the player interface. This view enables:
-
+-   Single unified interface for all participants regardless of role
 -   Streaming GameLift gameplay to IVS Real-Time Stage
--   Broadcasting your webcam alongside gameplay
--   Seeing and hearing multiple feedback providers simultaneously
+-   Broadcasting webcam alongside gameplay
+-   Seeing and hearing multiple participants simultaneously
 -   Vertical scrolling layout to accommodate multiple participant video feeds
 -   Real-time chat via off-canvas panel
 -   Media controls for camera and microphone
--   Automatic input attachment when clicking gameplay area
-
-#### Play Test Feedback Provider View
-
-Sign in with `viewer@ivs.rocks` and navigate to the Play Test Feedback Provider view from the viewer interface. This view enables:
-
--   Joining play testing sessions with webcam and microphone
--   Watching live gameplay and play tester webcam
--   Providing real-time video and audio feedback
--   Seeing other feedback providers in the session
--   Real-time chat via off-canvas panel
--   Media controls to toggle camera and microphone
+-   Dynamic control transfer between participants
 -   Automatic fallback to view-only mode if media permissions are denied
 
-**Use Case:** These views transform the application from one-way broadcast to interactive collaboration, enabling game developers to gather immediate feedback during gameplay sessions. Multiple feedback providers can join simultaneously, creating a virtual focus group environment for play testing.
-
-### Interactive Play Testing (Unified View with Role Swap)
+### Using the Interactive Play Testing View
 
 The Interactive Play Testing view provides a unified interface where participants can join play testing sessions with webcam and microphone, view gameplay, and dynamically transfer gameplay control between participants based on their role.
 
@@ -209,27 +195,27 @@ Users authenticated as `viewer@ivs.rocks` have the ability to:
 -   Join the IVS stage with webcam and microphone to communicate with other participants
 -   Watch gameplay streams from the current controller
 
-#### Takeover Request and Approval Workflow
+#### Control Request and Approval Workflow
 
-The Interactive Play Testing view enables dynamic transfer of gameplay control between participants through a structured takeover workflow:
+The Interactive Play Testing view enables dynamic transfer of gameplay control between participants through a structured control request workflow:
 
-1. **Initiating a Takeover Request**
+1. **Initiating a Control Request**
 
-    - When gameplay is active, viewers see a "Request Takeover" button
-    - Clicking the button sends a takeover request to the current controller
+    - When gameplay is active, viewers see a "Request Control" button
+    - Clicking the button sends a control request to the current controller
     - The requester sees "Waiting for approval" status
     - The request automatically times out after 60 seconds if not answered
 
-2. **Responding to Takeover Requests**
+2. **Responding to Control Requests**
 
     - The current controller receives a notification showing the requester's username
     - Three response options are available:
         - **Approve**: Grants control to the requester
         - **Deny**: Rejects the request
         - **Dismiss**: Cancels the request without responding
-    - Only one takeover request can be active at a time
+    - Only one control request can be active at a time
 
-3. **Takeover Approval Process**
+3. **Control Approval Process**
 
     - When approved, the current controller's GameLift connection automatically disconnects
     - The session ID is securely transferred to the requester
@@ -237,10 +223,10 @@ The Interactive Play Testing view enables dynamic transfer of gameplay control b
     - Gameplay automatically broadcasts to IVS for all participants to view
     - The previous controller transitions to viewing the IVS broadcast
 
-4. **Takeover Denial or Cancellation**
-    - If denied, the requester receives a "Takeover denied" notification
+4. **Control Denial or Cancellation**
+    - If denied, the requester receives a "Control request denied" notification
     - If dismissed or timed out, the requester receives a "Request cancelled" notification
-    - The "Request Takeover" button is re-enabled for future requests
+    - The "Request Control" button is re-enabled for future requests
 
 #### Step-by-Step Usage Instructions
 
@@ -254,13 +240,13 @@ The Interactive Play Testing view enables dynamic transfer of gameplay control b
 6. Use gameplay controls (stop, fullscreen, input toggle) as needed
 7. Respond to takeover requests from viewers as they arrive
 
-**For Viewers (Joining and Requesting Takeover):**
+**For Viewers (Joining and Requesting Control):**
 
 1. Sign in with `viewer@ivs.rocks`
 2. Navigate to `/interactive-playtest`
 3. Allow camera and microphone permissions when prompted
 4. Wait for a player to start a gameplay session
-5. Click "Request Takeover" when you want to play
+5. Click "Request Control" when you want to play
 6. Wait for the current controller to approve your request
 7. Once approved, you automatically connect and begin streaming gameplay
 8. Use gameplay controls to manage your session
@@ -270,19 +256,19 @@ The Interactive Play Testing view enables dynamic transfer of gameplay control b
 -   Toggle your camera and microphone using the media control buttons
 -   Access chat via the chat button (opens an off-canvas panel)
 -   View all participant webcam feeds in a vertical scrollable layout
--   See real-time status updates for takeover requests and approvals
+-   See real-time status updates for control requests and approvals
 
 #### Automatic IVS Broadcasting
 
 The Interactive Play Testing view features automatic IVS broadcasting to ensure seamless transitions:
 
 -   When any participant starts a GameLift session, gameplay automatically broadcasts to IVS
--   When a takeover is approved, the new controller's gameplay automatically broadcasts
+-   When a control request is approved, the new controller's gameplay automatically broadcasts
 -   No manual "Broadcast to IVS" button is required
 -   All participants continuously see the current controller's gameplay
 -   Webcam feeds remain visible throughout all transitions
 
-This automatic broadcasting eliminates manual intervention and ensures that takeover transitions are smooth and immediate for all session participants.
+This automatic broadcasting eliminates manual intervention and ensures that control transitions are smooth and immediate for all session participants.
 
 #### Key Features
 
@@ -296,8 +282,8 @@ This automatic broadcasting eliminates manual intervention and ensures that take
 
 #### Technical Notes
 
--   Control messages for takeover coordination use the AppSync WebSocket channel with distinct action types to avoid interfering with chat functionality
--   Session IDs are securely transferred during takeover approval to enable connection reuse
+-   Control messages for control request coordination use the AppSync WebSocket channel with distinct action types to avoid interfering with chat functionality
+-   Session IDs are securely transferred during control approval to enable connection reuse
 -   The view reuses existing components (AppSyncChatClient, IVSStageManager, ChatComponent) for consistency
 -   Media permissions fallback: If camera/microphone access is denied, participants can still view the session in subscribe-only mode
 
