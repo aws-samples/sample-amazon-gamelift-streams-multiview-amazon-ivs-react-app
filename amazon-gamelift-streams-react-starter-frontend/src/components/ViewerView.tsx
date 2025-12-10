@@ -10,6 +10,7 @@ import { StageConnectionState } from 'amazon-ivs-web-broadcast';
 import { AppSyncChatClient } from '../utils/AppSyncChatClient';
 import { IVSStageManager } from '../utils/IVSStageManager';
 import { ChatComponent } from './ChatComponent';
+import { VolumeControl } from './VolumeControl';
 import { generateUsername } from '../utils/usernameGenerator';
 import { APPSYNC_CONFIG } from '../utils/constants';
 import { RemoteStageStream } from '../types/ivs.types';
@@ -396,6 +397,15 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
                 playsInline
               />
 
+              {/* Volume Control for Gameplay Stream */}
+              {isConnected && gameplayStream && (
+                <VolumeControl
+                  mediaElement={gameplayVideoRef.current}
+                  initialVolume={1}
+                  className="gameplay-volume-control"
+                />
+              )}
+
               {/* Play Button Overlay - shown when not connected */}
               {!isConnecting && !isConnected && (
                 <div className="play-button-overlay" onClick={connectToStage}>
@@ -465,6 +475,15 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
                 autoPlay
                 playsInline
               />
+
+              {/* Volume Control for Webcam Stream */}
+              {isConnected && webcamStream && (
+                <VolumeControl
+                  mediaElement={webcamVideoRef.current}
+                  initialVolume={1}
+                  className="webcam-volume-control"
+                />
+              )}
 
               {/* Offline Message */}
               {!webcamStream && isConnected && (

@@ -14,6 +14,7 @@ import { fetchAuthSession } from 'aws-amplify/auth';
 import { AppSyncChatClient } from '../utils/AppSyncChatClient';
 import { IVSStageManager } from '../utils/IVSStageManager';
 import { ChatComponent } from './ChatComponent';
+import { VolumeControl } from './VolumeControl';
 import { generateUsername } from '../utils/usernameGenerator';
 import { APPSYNC_CONFIG, STREAM_SOURCE, GAMELIFT_STREAMS_CONFIG, IVS_WHIP_ENDPOINT, ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST } from '../utils/constants';
 import './Views.css';
@@ -1217,6 +1218,15 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
               {/* GameLift Audio - Player should hear this */}
               <audio ref={gameLiftAudioRef} id="PlayerGameLiftAudio" autoPlay />
 
+              {/* Volume Control for GameLift Audio */}
+              {gameLiftStatus === StreamState.RUNNING && (
+                <VolumeControl
+                  mediaElement={gameLiftAudioRef.current}
+                  initialVolume={1}
+                  className="gameplay-volume-control"
+                />
+              )}
+
               {/* Loading Overlay */}
               {isStreamStarting && !isReconnecting && (
                 <div className="loading-overlay">
@@ -1280,6 +1290,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
                 id="PlayerWebcamVideo"
                 autoPlay
                 playsInline
+                muted
               />
 
               {/* Media Controls */}

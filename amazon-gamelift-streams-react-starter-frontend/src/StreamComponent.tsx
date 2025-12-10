@@ -7,6 +7,7 @@ import * as gameliftstreamssdk from './gamelift-streams-websdk/gameliftstreams-1
 import { ApiError, get, post } from 'aws-amplify/api';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import NavBar from './NavBar';
+import { VolumeControl } from './components/VolumeControl';
 import { 
     Stage, 
     LocalStageStream, 
@@ -709,6 +710,15 @@ class StreamComponent extends React.Component<StreamComponentProps, StreamCompon
                                             Click anywhere on the video to enable mouse and keyboard input
                                         </div>
                                     </div>
+                                )}
+
+                                {/* Volume Control for GameLift Stream */}
+                                {this.state.status === StreamState.RUNNING && (
+                                    <VolumeControl
+                                        mediaElement={this.audioRef.current}
+                                        initialVolume={1}
+                                        className="stream-volume-control"
+                                    />
                                 )}
                             </div>
                             <audio ref={this.audioRef} id={'StreamAudioElement'} autoPlay></audio>

@@ -1,0 +1,255 @@
+/**
+ * VolumeControl Component Styles
+ * Positioned in bottom left of video containers with glassmorphism design
+ * Single element that expands vertically on hover
+ */
+
+.volume-control {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  z-index: 15;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 22px;
+  padding: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  /* Compact state - just fits the speaker button */
+  height: 44px;
+  width: 44px;
+}
+
+.volume-control:hover,
+.volume-control.expanded {
+  /* Expanded state - shows full volume slider */
+  height: 140px;
+  padding: 12px 8px 8px 8px;
+}
+
+/* Volume Button */
+.volume-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+.volume-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.volume-btn:active {
+  transform: scale(1);
+}
+
+.volume-btn:focus-visible {
+  outline: 2px solid rgba(78, 205, 196, 0.8);
+  outline-offset: 2px;
+}
+
+.volume-btn.muted {
+  color: rgba(220, 53, 69, 0.9);
+}
+
+.volume-btn.muted:hover {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.volume-btn i {
+  font-size: 18px;
+}
+
+/* Volume Slider Container */
+.volume-slider-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 8px;
+  height: 80px;
+  pointer-events: none;
+}
+
+.volume-slider-container.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Volume Slider */
+.volume-slider {
+  writing-mode: bt-lr;
+  /* IE */
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  /* WebKit */
+  width: 6px;
+  height: 60px;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  /* No rotation - natural orientation: up = louder, down = quieter */
+  margin: 4px 0;
+}
+
+/* WebKit Slider Styles */
+.volume-slider::-webkit-slider-track {
+  width: 6px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  border: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #4ecdc4;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+  background: #e94560;
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Firefox Slider Styles */
+.volume-slider::-moz-range-track {
+  width: 6px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  border: none;
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #4ecdc4;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.volume-slider::-moz-range-thumb:hover {
+  background: #e94560;
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Volume Percentage Display */
+.volume-percentage {
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  margin-bottom: 4px;
+  min-width: 28px;
+  opacity: 0.9;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .volume-control {
+    bottom: 8px;
+    left: 8px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .volume-control:hover,
+  .volume-control.expanded {
+    height: 120px;
+  }
+
+  .volume-btn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .volume-btn i {
+    font-size: 16px;
+  }
+
+  .volume-slider-container {
+    height: 60px;
+  }
+
+  .volume-slider {
+    height: 50px;
+  }
+
+  .volume-slider::-webkit-slider-track {
+    height: 50px;
+  }
+
+  .volume-slider::-moz-range-track {
+    height: 50px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .volume-btn {
+    border-width: 2px;
+    border-color: white;
+  }
+
+  .volume-slider-container {
+    border-width: 2px;
+    border-color: white;
+  }
+
+  .volume-slider::-webkit-slider-thumb {
+    border: 2px solid white;
+  }
+
+  .volume-slider::-moz-range-thumb {
+    border: 2px solid white;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+
+  .volume-control,
+  .volume-btn,
+  .volume-slider-container,
+  .volume-slider::-webkit-slider-thumb,
+  .volume-slider::-moz-range-thumb {
+    transition: none;
+  }
+}

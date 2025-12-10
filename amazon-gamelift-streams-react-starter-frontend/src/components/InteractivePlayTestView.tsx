@@ -15,6 +15,7 @@ import { fetchAuthSession } from 'aws-amplify/auth';
 import { AppSyncChatClient } from '../utils/AppSyncChatClient';
 import { IVSStageManager } from '../utils/IVSStageManager';
 import { ChatComponent } from './ChatComponent';
+import { VolumeControl } from './VolumeControl';
 import { generateUsername } from '../utils/usernameGenerator';
 import { APPSYNC_CONFIG, STREAM_SOURCE, GAMELIFT_STREAMS_CONFIG } from '../utils/constants';
 import { RemoteStageStream } from '../types/ivs.types';
@@ -112,6 +113,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   const [liveRegionMessage, setLiveRegionMessage] = useState<string>('');
   const [hasConnectedToStage, setHasConnectedToStage] = useState(false);
   const [showInputIndicator, setShowInputIndicator] = useState(true);
+  const [ivsGameplayVideoElement, setIvsGameplayVideoElement] = useState<HTMLVideoElement | null>(null);
 
   // Refs
   const gameLiftVideoRef = useRef<HTMLVideoElement>(null);
@@ -2422,6 +2424,10 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
                     mediaStream.addTrack(audioStream.mediaStreamTrack);
                   }
                 }
+
+                // Ensure the video element is not muted so volume control works
+                el.muted = false;
+                el.volume = 1;
               }
             }}
             autoPlay
@@ -2429,6 +2435,23 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
             className="video-cover"
             aria-label={`${participantUsername}'s video feed`}
           />
+
+          {/* Volume Control for Remote Participant Video */}
+          {isLive && (
+            <VolumeControl
+              mediaElement={participantVideoRefs.current.get(userId) || null}
+              initialVolume={1}
+              className="participant-volume-control"
+              onVolumeChange={(volume, muted) => {
+                // For IVS participant streams, control the video element directly
+                const videoElement = participantVideoRefs.current.get(userId);
+                if (videoElement) {
+                  videoElement.volume = volume;
+                  videoElement.muted = muted;
+                }
+              }}
+            />
+          )}
           {!videoStream && (
             <div className="offline-message" role="status">
               <p>Participant video not active</p>
@@ -2540,6 +2563,15 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
               aria-label="Gameplay audio"
             />
 
+            {/* Volume Control for GameLift Audio */}
+            {hasGameplayControl && gameLiftStatus === StreamState.RUNNING && (
+              <VolumeControl
+                mediaElement={gameLiftAudioRef.current}
+                initialVolume={1}
+                className="gameplay-volume-control"
+              />
+            )}
+
             {/* Show status when user has gameplay control */}
             {hasGameplayControl && gameLiftStatus === StreamState.RUNNING && (
               <div className="stream-status">
@@ -2560,6 +2592,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
                   ref={(el) => {
                     if (el) {
                       ivsGameplayVideoRef.current = el;
+                      setIvsGameplayVideoElement(el); // Set state for VolumeControl
                       let mediaStream = el.srcObject as MediaStream;
                       if (!mediaStream) {
                         mediaStream = new MediaStream();
@@ -2586,6 +2619,12 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
                           console.log('Added gameplay audio track to MediaStream');
                         }
                       }
+
+                      // Ensure the video element is not muted so volume control works
+                      el.muted = false;
+                      el.volume = 1;
+                    } else {
+                      setIvsGameplayVideoElement(null);
                     }
                   }}
                   autoPlay
@@ -2593,6 +2632,23 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
                   className="video-visible"
                   aria-label="Live gameplay broadcast from current controller"
                 />
+
+                {/* Volume Control for IVS Gameplay Stream */}
+                {ivsGameplayVideoElement && (
+                  <VolumeControl
+                    mediaElement={ivsGameplayVideoElement}
+                    initialVolume={1}
+                    className="gameplay-volume-control"
+                    onVolumeChange={(volume, muted) => {
+                      // For IVS streams, we need to control the video element's volume directly
+                      console.log('IVS Gameplay Volume Control:', ivsGameplayVideoElement);
+                      if (ivsGameplayVideoElement) {
+                        ivsGameplayVideoElement.volume = volume;
+                        ivsGameplayVideoElement.muted = muted;
+                      }
+                    }}
+                  />
+                )}
                 
                 {/* Show Request Takeover button for anyone without control */}
                 {!hasGameplayControl && (
@@ -2651,6 +2707,9 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
               className="video-cover"
               aria-label="Your webcam video"
             />
+
+
+
             {isWebcamBroadcasting && (
               <div className="media-controls" role="toolbar" aria-label="Media controls">
                 <button
