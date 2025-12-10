@@ -41,7 +41,7 @@ export class AmazonGameliftStreamsReactStarterFrontendStack extends cdk.Stack {
         'US', 'CA', 'MX',
         // Europe
         'GB', 'DE', 'FR', 'IT', 'ES', 'NL',
-        'SE', 'NO', 'DK', 'FI', 'IE',
+        'SE', 'NO', 'DK', 'FI', 'IE', 'GR',
         // Asia Pacific
         'JP', 'KR', 'SG', 'AU', 'NZ', 'IN',
         // South America
