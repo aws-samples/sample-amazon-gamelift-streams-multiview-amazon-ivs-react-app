@@ -42,7 +42,6 @@ export const VolumeControl: React.FC<VolumeControlProps> = ({
 
   // Sync with media element's initial state
   useEffect(() => {
-    console.log('***', mediaElement);
     if (mediaElement) {
       setVolume(mediaElement.volume);
       setIsMuted(mediaElement.muted);

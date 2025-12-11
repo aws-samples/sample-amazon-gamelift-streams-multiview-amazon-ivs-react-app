@@ -41,7 +41,7 @@ describe('VolumeControl', () => {
     render(<VolumeControl mediaElement={mockVideo} />);
     
     const volumeButton = screen.getByRole('button', { name: /mute/i });
-    expect(volumeButton).toContainHTML('bi-volume-up-fill');
+    expect(volumeButton.innerHTML).toContain('bi-volume-up-fill');
   });
 
   it('shows mute icon when volume is 0', () => {
@@ -49,7 +49,7 @@ describe('VolumeControl', () => {
     render(<VolumeControl mediaElement={mockVideo} initialVolume={0} />);
     
     const volumeButton = screen.getByRole('button', { name: /mute/i });
-    expect(volumeButton).toContainHTML('bi-volume-mute-fill');
+    expect(volumeButton.innerHTML).toContain('bi-volume-mute-fill');
   });
 
   it('toggles mute when button is clicked', async () => {
