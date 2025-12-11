@@ -62,7 +62,6 @@ The VolumeControl component has been integrated into:
 1. **PlayerView** - Controls for GameLift audio and webcam video
 2. **ViewerView** - Controls for gameplay and webcam streams
 3. **InteractivePlayTestView** - Controls for gameplay and webcam streams
-4. **StreamComponent** - Controls for legacy GameLift stream
 
 ## Positioning
 

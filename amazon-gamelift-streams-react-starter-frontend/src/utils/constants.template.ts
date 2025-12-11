@@ -31,10 +31,22 @@ export const APPSYNC_CONFIG = {
 };
 
 // GameLift Streams Configuration
-// Update these with your GameLift Streams Application and Stream Group IDs
+// Configure multiple games with descriptive names for easy selection
 export const GAMELIFT_STREAMS_CONFIG = {
-  streamGroupId: 'sg-XXXXXXXXXXXXX', // Your GameLift Streams Stream Group ID
-  applicationId: 'a-XXXXXXXXXXXXX', // Your GameLift Streams Application ID
+  gameLibrary: {
+    "My Game Demo": {
+      applicationId: 'a-XXXXXXXXXXXXX', // Your GameLift Streams Application ID
+      streamGroupId: 'sg-XXXXXXXXXXXXX', // Your GameLift Streams Stream Group ID
+      supportsDirectBroadcast: true, // Whether this game supports GameLift-IVS Direct Broadcast
+    },
+    "Another Game": {
+      applicationId: 'a-YYYYYYYYYYYYY', // Another GameLift Streams Application ID
+      streamGroupId: 'sg-YYYYYYYYYYYYY', // Another GameLift Streams Stream Group ID
+      supportsDirectBroadcast: false, // This game doesn't support direct broadcast
+    }
+  },
+  playTestingApplicationId: 'a-XXXXXXXXXXXXX', // Application ID used for Interactive Play Testing (single game configuration)
+  playTestingStreamGroupId: 'sg-XXXXXXXXXXXXX', // Stream Group ID used for Interactive Play Testing (single game configuration)
   defaultRegion: 'us-west-2' // Your preferred AWS region
 };
 

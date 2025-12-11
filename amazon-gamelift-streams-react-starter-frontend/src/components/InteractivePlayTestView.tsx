@@ -507,8 +507,8 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       const signalRequest = await gameliftstreamsRef.current.generateSignalRequest();
       
       const payload = {
-        AppIdentifier: GAMELIFT_STREAMS_CONFIG.applicationId,
-        SGIdentifier: GAMELIFT_STREAMS_CONFIG.streamGroupId,
+        AppIdentifier: GAMELIFT_STREAMS_CONFIG.playTestingApplicationId,
+        SGIdentifier: GAMELIFT_STREAMS_CONFIG.playTestingStreamGroupId,
         SignalRequest: signalRequest ?? '',
         Regions: [GAMELIFT_STREAMS_CONFIG.defaultRegion]
       };
@@ -534,7 +534,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       console.log('Stream session created, waiting for ACTIVE status...');
       
       // Wait for session to become ACTIVE and start stream
-      await waitForACTIVE(data.arn, GAMELIFT_STREAMS_CONFIG.streamGroupId);
+      await waitForACTIVE(data.arn, GAMELIFT_STREAMS_CONFIG.playTestingStreamGroupId);
     } catch (error) {
       console.error('Failed to start gameplay session:', error);
       handleGameLiftError(error);

@@ -77,8 +77,9 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
   
   // GameLift Stream State
   const [gameLiftStatus, setGameLiftStatus] = useState<StreamState>(StreamState.STOPPED);
-  const [sgId, setSgId] = useState(GAMELIFT_STREAMS_CONFIG.streamGroupId);
-  const [appId, setAppId] = useState(GAMELIFT_STREAMS_CONFIG.applicationId);
+  const [selectedGame, setSelectedGame] = useState(Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary)[0] || '');
+  const [sgId, setSgId] = useState(GAMELIFT_STREAMS_CONFIG.gameLibrary[Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary)[0]]?.streamGroupId || '');
+  const [appId, setAppId] = useState(GAMELIFT_STREAMS_CONFIG.gameLibrary[Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary)[0]]?.applicationId || '');
   const [sessionId, setSessionId] = useState('');
   const [lastSessionId, setLastSessionId] = useState('');
   const [regions, setRegions] = useState([GAMELIFT_STREAMS_CONFIG.defaultRegion]);
@@ -119,7 +120,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
     videoWidth: 1280,
     videoHeight: 720,
     videoFramerate: 30,
-    videoBitrate: 8000,
+    videoBitrate: 4000,
     enableAudio: true,
     audioBitrate: 128000,
     debugPipeline: false
@@ -286,6 +287,21 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
   const detachInput = () => {
     gameliftstreamsRef.current?.detachInput();
     setInputEnabled(false);
+  };
+
+  // Handle game selection change
+  const handleGameSelectionChange = (gameName: string) => {
+    const gameConfig = GAMELIFT_STREAMS_CONFIG.gameLibrary[gameName];
+    if (gameConfig) {
+      setSelectedGame(gameName);
+      setSgId(gameConfig.streamGroupId);
+      setAppId(gameConfig.applicationId);
+      
+      // If switching to a game that doesn't support direct broadcast while on broadcast tab, switch to general tab
+      if (activeTab === 'broadcast' && !gameConfig.supportsDirectBroadcast) {
+        setActiveTab('general');
+      }
+    }
   };
 
   const applicationMessageCallback = (applicationMsg) => {
@@ -1359,7 +1375,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
                       General
                     </button>
                   </li>
-                  {ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST && (
+                  {ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST && GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.supportsDirectBroadcast && (
                     <li className="nav-item">
                       <button
                         className={`nav-link nav-link-custom ${activeTab === 'broadcast' ? 'active' : ''}`}
@@ -1378,6 +1394,21 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
                       {/* GameLift Configuration */}
                       <h6 className="mb-3">GameLift Stream Configuration</h6>
                       <div className="row g-3 mb-4">
+                        <div className="col-md-12">
+                          <label htmlFor="gameSelection" className="form-label">Game Selection</label>
+                          <select
+                            className="form-select"
+                            id="gameSelection"
+                            value={selectedGame}
+                            onChange={(e) => handleGameSelectionChange(e.target.value)}
+                          >
+                            {Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary).map((gameName) => (
+                              <option key={gameName} value={gameName}>
+                                {gameName}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                         <div className="col-md-6">
                           <label htmlFor="sgId" className="form-label">Stream Group ID</label>
                           <input
@@ -1476,11 +1507,11 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
                   )}
 
                   {/* Direct Broadcast Configuration Tab */}
-                  {activeTab === 'broadcast' && ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST && (
+                  {activeTab === 'broadcast' && ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST && GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.supportsDirectBroadcast && (
                     <>
                       <div className="alert alert-info alert-info-custom">
-                        <i className="bi bi-info-circle me-2"></i>
-                        These settings configure the video encoder on the GameLift instance for direct IVS broadcast.
+                        <i className="bi bi-info-circle me-1"></i>
+                        These settings configure the video encoder on the GameLift instance for IVS broadcast.
                       </div>
 
                       {/* Encoder Options */}
@@ -1550,7 +1581,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
                             className="form-control"
                             id="videoBitrate"
                             value={broadcastConfig.videoBitrate}
-                            onChange={(e) => setBroadcastConfig({...broadcastConfig, videoBitrate: parseInt(e.target.value) || 8000})}
+                            onChange={(e) => setBroadcastConfig({...broadcastConfig, videoBitrate: parseInt(e.target.value) || 4000})}
                             min="1000"
                             max="15000"
                             step="500"
@@ -1659,21 +1690,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
                           720p @ 60fps
                         </button>
                       </div> */}
-                      <div className="d-flex gap-2 mb-3">
-                        {/* Direct Broadcast Button - Combines GameLift + IVS */}
-                        {ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST && (
-                          <button
-                            className="btn btn-success"
-                            onClick={createDirectBroadcastSession}
-                            disabled={isDirectBroadcastStarting || gameLiftStatus === StreamState.RUNNING}
-                          >
-                            {isDirectBroadcastStarting && (
-                              <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                            )}
-                            Start Game (Direct Broadcast)
-                          </button>
-                        )}
-                      </div>
                     </>
                   )}
                 </div>
@@ -1683,10 +1699,12 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
                     <div className="d-flex gap-2 flex-wrap">
                       <button
                         className={`btn ${gameLiftStatus !== StreamState.RUNNING ? 'btn-success' : 'btn-danger'}`}
-                        onClick={gameLiftStatus !== StreamState.RUNNING ? createStreamSession : closeConnection}
-                        disabled={isStreamStarting}
+                        onClick={gameLiftStatus !== StreamState.RUNNING ? 
+                          (GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.supportsDirectBroadcast ? createDirectBroadcastSession : createStreamSession) : 
+                          closeConnection}
+                        disabled={isStreamStarting || isDirectBroadcastStarting}
                       >
-                        {isStreamStarting && (
+                        {(isStreamStarting || isDirectBroadcastStarting) && (
                           <span className="spinner-border spinner-border-sm me-2" role="status"></span>
                         )}
                         {gameLiftStatus !== StreamState.RUNNING ? 'Start Game' : 'Stop Game'}
@@ -1713,7 +1731,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
                       <button
                         className={`btn ${isGameplayBroadcasting ? 'btn-danger' : 'btn-info'}`}
                         onClick={isGameplayBroadcasting ? stopGameplayBroadcast : startGameplayBroadcast}
-                        disabled={isGameplayBroadcastStarting || gameLiftStatus !== StreamState.RUNNING}
+                        disabled={isGameplayBroadcastStarting || gameLiftStatus !== StreamState.RUNNING || GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.supportsDirectBroadcast}
                       >
                         {isGameplayBroadcastStarting && (
                           <span className="spinner-border spinner-border-sm me-2" role="status"></span>

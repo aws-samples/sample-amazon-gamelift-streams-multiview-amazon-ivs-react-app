@@ -68,8 +68,9 @@ export enum StreamState {
 export const TwitchBroadcastView: React.FC<TwitchBroadcastViewProps> = ({ user, signOut }) => {
   // GameLift Stream State
   const [gameLiftStatus, setGameLiftStatus] = useState<StreamState>(StreamState.STOPPED);
-  const [sgId, setSgId] = useState(GAMELIFT_STREAMS_CONFIG.streamGroupId);
-  const [appId, setAppId] = useState(GAMELIFT_STREAMS_CONFIG.applicationId);
+  const [selectedGame, setSelectedGame] = useState(Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary)[0] || '');
+  const [sgId, setSgId] = useState(GAMELIFT_STREAMS_CONFIG.gameLibrary[Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary)[0]]?.streamGroupId || '');
+  const [appId, setAppId] = useState(GAMELIFT_STREAMS_CONFIG.gameLibrary[Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary)[0]]?.applicationId || '');
   const [sessionId, setSessionId] = useState('');
   const [lastSessionId, setLastSessionId] = useState('');
   const [regions, setRegions] = useState([GAMELIFT_STREAMS_CONFIG.defaultRegion]);
@@ -201,6 +202,16 @@ export const TwitchBroadcastView: React.FC<TwitchBroadcastViewProps> = ({ user, 
   const detachInput = () => {
     gameliftstreamsRef.current?.detachInput();
     setInputEnabled(false);
+  };
+
+  // Handle game selection change
+  const handleGameSelectionChange = (gameName: string) => {
+    const gameConfig = GAMELIFT_STREAMS_CONFIG.gameLibrary[gameName];
+    if (gameConfig) {
+      setSelectedGame(gameName);
+      setSgId(gameConfig.streamGroupId);
+      setAppId(gameConfig.applicationId);
+    }
   };
 
   const resetGameLiftStreamsSDK = () => {
@@ -1482,6 +1493,21 @@ export const TwitchBroadcastView: React.FC<TwitchBroadcastViewProps> = ({ user, 
                   {/* GameLift Configuration */}
                   <h6 className="mb-3">GameLift Stream Configuration</h6>
                   <div className="row g-3 mb-4">
+                    <div className="col-md-12">
+                      <label htmlFor="gameSelection" className="form-label">Game Selection</label>
+                      <select
+                        className="form-select"
+                        id="gameSelection"
+                        value={selectedGame}
+                        onChange={(e) => handleGameSelectionChange(e.target.value)}
+                      >
+                        {Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary).map((gameName) => (
+                          <option key={gameName} value={gameName}>
+                            {gameName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                     <div className="col-md-6">
                       <label htmlFor="sgId" className="form-label">Stream Group ID</label>
                       <input

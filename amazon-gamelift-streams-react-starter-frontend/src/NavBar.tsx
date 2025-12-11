@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT-0
 
 import React from 'react';
-import './StreamComponent.css';
 
 interface NavBarProps {
     user: any;

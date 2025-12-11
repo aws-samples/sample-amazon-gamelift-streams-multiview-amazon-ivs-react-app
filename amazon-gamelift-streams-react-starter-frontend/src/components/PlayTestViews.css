@@ -1039,8 +1039,7 @@ t Toggle Button */
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  animation: slideInRight 0.3s ease;
-  margin: 0 1rem;
+  /* animation: slideInRight 0.3s ease; */
   flex-shrink: 0;
 }
 

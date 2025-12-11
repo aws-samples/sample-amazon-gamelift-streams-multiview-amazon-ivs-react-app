@@ -11,3 +11,64 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Video controls override */
+video::-webkit-media-controls {
+  display: none !important;
+}
+
+/* Spinner animation */
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #0d6efd;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Logo styles */
+.logo {
+  width: 80px;
+  height: 80px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Custom Bootstrap overrides */
+.form-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.btn {
+  font-weight: 500;
+}
+
+.alert-info {
+  border-left: 4px solid #0dcaf0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .navbar-brand {
+    font-size: 1.2rem !important;
+  }
+
+  .logo {
+    width: 60px;
+    height: 60px;
+  }
+}
