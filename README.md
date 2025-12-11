@@ -100,15 +100,17 @@ It is important to understand the difference between Amazon GameLift Streams `Pr
     - Update `APPSYNC_CONFIG.realtimeEndpoint` with the AppSync Realtime Endpoint from step 7
     - Update `APPSYNC_CONFIG.channelName` with the AppSync Channel Namespace from step 7
 9. Update the API and GameLift Streams configuration in `/amazon-gamelift-streams-react-starter-frontend/src/utils/constants.ts`:
-    - Update `GAMELIFT_STREAMS_CONFIG.streamGroupId` with your GameLift Streams Stream Group ID
-    - Update `GAMELIFT_STREAMS_CONFIG.applicationId` with your GameLift Streams Application ID
+    - Update `GAMELIFT_STREAMS_CONFIG.gameLibrary` with your GameLift Streams configurations. You can configure multiple games with descriptive names:
+        - Each game entry should have a descriptive name as the key (e.g., "Unity Explorer", "My Racing Game")
+        - Each game configuration includes `applicationId`, `streamGroupId`, and `supportsDirectBroadcast` properties
+        - The Player View will show a dropdown to select between configured games
+    - Update `GAMELIFT_STREAMS_CONFIG.playTestingApplicationId` and `GAMELIFT_STREAMS_CONFIG.playTestingStreamGroupId` with the single game configuration to use for Interactive Play Testing
     - Update `GAMELIFT_STREAMS_CONFIG.defaultRegion` with your preferred AWS region (default is `us-west-2`)
     - Update `API_CONFIG.endpoint` with the API endpoint from step 6 above. **Ensure that the API endpoint has no trailing slash `/` at the end**.
-10. Ensure the `gameliftstreamssdk` import path within `/amazon-gamelift-streams-react-starter-frontend/src/StreamComponent.tsx` includes the applicable version of the Web SDK.
-11. Within the `/amazon-gamelift-streams-react-starter-frontend` directory, run `npm run build` to build the single page application frontend. Don't forget that if you make changes to your frontend, you need to re-build with `npm run build` before redeploying the frontend cdk stack.
-12. Run `cdk deploy AmazonGameliftStreamsReactStarterFrontendStack` at the root level of this repository, to deploy the web frontend.
-13. Once everything is deployed, you can visit your deployed frontend via the Amazon CloudFront distribution, or while developing on localhost by running `npm start` within the `/amazon-gamelift-streams-react-starter-frontend` directory.
-14. You will need Amazon Cognito users to authenticate into the frontend web page. Create two users in the deployed userpool in the Cognito AWS Console:
+10. Within the `/amazon-gamelift-streams-react-starter-frontend` directory, run `npm run build` to build the single page application frontend. Don't forget that if you make changes to your frontend, you need to re-build with `npm run build` before redeploying the frontend cdk stack.
+11. Run `cdk deploy AmazonGameliftStreamsReactStarterFrontendStack` at the root level of this repository, to deploy the web frontend.
+12. Once everything is deployed, you can visit your deployed frontend via the Amazon CloudFront distribution, or while developing on localhost by running `npm start` within the `/amazon-gamelift-streams-react-starter-frontend` directory.
+13. You will need Amazon Cognito users to authenticate into the frontend web page. Create two users in the deployed userpool in the Cognito AWS Console:
 
     - `player@ivs.rocks` - For the player role (can stream gameplay and webcam, broadcast to Twitch)
     - `viewer@ivs.rocks` - For the viewer role (can watch streams, participate in chat, send reactions)
@@ -484,6 +486,47 @@ The application uses a modern serverless architecture to deliver real-time strea
 -   **API Authentication**: All API calls secured with Cognito JWT tokens
 -   **Stage Tokens**: IVS participant tokens generated securely via authenticated Lambda
 -   **CORS Protection**: Proper CORS configuration for web application security
+
+## Multi-Game Configuration
+
+This sample application supports configuring multiple GameLift Streams applications with descriptive names for easy selection. The `GAMELIFT_STREAMS_CONFIG.gameLibrary` object allows you to define multiple game configurations, each with:
+
+-   **Descriptive Name**: A user-friendly name that appears in the Player View dropdown (e.g., "Unity Explorer", "Racing Demo")
+-   **Application ID**: The GameLift Streams Application ID for this game
+-   **Stream Group ID**: The GameLift Streams Stream Group ID for this game
+-   **Direct Broadcast Support**: Whether this game supports GameLift-IVS Direct Broadcast feature
+
+### Using Multiple Games
+
+In the Player View settings dialog, users can select from the configured games using a dropdown above the Stream Group ID and Application ID inputs. When a game is selected, the associated IDs are automatically populated in the input fields.
+
+### Interactive Play Testing Configuration
+
+The Interactive Play Testing view uses a single game configuration specified by `playTestingApplicationId` and `playTestingStreamGroupId`. This provides a dedicated, consistent environment for play testing sessions without the complexity of game selection.
+
+### Configuration Example
+
+```typescript
+export const GAMELIFT_STREAMS_CONFIG = {
+    gameLibrary: {
+        'Unity Explorer': {
+            applicationId: 'a-gx0dbYn9h',
+            streamGroupId: 'sg-qZSCl3bBM',
+            supportsDirectBroadcast: false,
+        },
+        'Racing Demo': {
+            applicationId: 'a-HLqLlLfPc',
+            streamGroupId: 'sg-Ou8KqwAbq',
+            supportsDirectBroadcast: true,
+        },
+    },
+    playTestingApplicationId: 'a-gx0dbYn9h',
+    playTestingStreamGroupId: 'sg-qZSCl3bBM',
+    defaultRegion: 'us-west-2',
+};
+```
+
+This configuration provides flexibility to work with multiple games while maintaining simplicity for focused play testing scenarios.
 
 ## Multi-Location Stream Groups
 
