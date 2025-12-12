@@ -365,7 +365,7 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
                   onClick={toggleFullScreen}
                   title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
                 >
-                  <i className={`bi ${isFullscreen ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen'}`}></i>
+                  <i className={`bi ${isFullscreen ? 'bi-fullscreen-exit' : 'bi-fullscreen'}`}></i>
                 </button>
               )}
 

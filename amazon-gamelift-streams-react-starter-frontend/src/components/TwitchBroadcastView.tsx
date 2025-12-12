@@ -1364,7 +1364,7 @@ export const TwitchBroadcastView: React.FC<TwitchBroadcastViewProps> = ({ user, 
                   onClick={toggleFullScreen}
                   title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
                 >
-                  <i className={`bi ${isFullscreen ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen'}`}></i>
+                  <i className={`bi ${isFullscreen ? 'bi-fullscreen-exit' : 'bi-fullscreen'}`}></i>
                 </button>
               )}
 

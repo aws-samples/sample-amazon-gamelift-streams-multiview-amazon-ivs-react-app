@@ -102,10 +102,9 @@
 
 /* Volume Slider */
 .volume-slider {
-  writing-mode: bt-lr;
-  /* IE */
-  -webkit-appearance: slider-vertical;
-  appearance: slider-vertical;
+  /* Use modern standard approach for vertical sliders */
+  writing-mode: vertical-lr;
+  direction: rtl;
   /* WebKit */
   width: 6px;
   height: 60px;

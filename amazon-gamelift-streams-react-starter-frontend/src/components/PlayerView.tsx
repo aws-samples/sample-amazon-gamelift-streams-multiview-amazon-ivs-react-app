@@ -1136,7 +1136,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
         {/* Header */}
         <div className="view-header">
           <div>
-            <h2>Amazon GameLift Streams + IVS (Player)</h2>
+            <h2>Amazon GameLift Streams + IVS (Player View)</h2>
             <span className="username">@{username}</span>
           </div>
           <div className="button-group">
@@ -1219,7 +1219,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
                   onClick={toggleFullScreen}
                   title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
                 >
-                  <i className={`bi ${isFullscreen ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen'}`}></i>
+                  <i className={`bi ${isFullscreen ? 'bi-fullscreen-exit' : 'bi-fullscreen'}`}></i>
                 </button>
               )}
 
@@ -1356,6 +1356,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
           onClose={() => setShowSettingsModal(false)}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
+          showOnlyDirectBroadcastGames={false}
           gameLiftStatus={gameLiftStatus}
           selectedGame={selectedGame}
           sgId={sgId}
@@ -1382,7 +1383,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
           onStartGame={GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.supportsDirectBroadcast ? createDirectBroadcastSession : createStreamSession}
           onStopGame={closeConnection}
           onReconnect={createStreamSessionConnection}
-          onToggleFullscreen={toggleFullScreen}
           onStartGameplayBroadcast={startGameplayBroadcast}
           onStopGameplayBroadcast={stopGameplayBroadcast}
           onStartWebcamBroadcast={startWebcamBroadcast}

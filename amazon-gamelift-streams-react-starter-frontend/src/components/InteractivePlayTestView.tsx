@@ -16,8 +16,9 @@ import { AppSyncChatClient } from '../utils/AppSyncChatClient';
 import { IVSStageManager } from '../utils/IVSStageManager';
 import { ChatComponent } from './ChatComponent';
 import { VolumeControl } from './VolumeControl';
+import { SettingsModal } from './SettingsModal';
 import { generateUsername } from '../utils/usernameGenerator';
-import { APPSYNC_CONFIG, STREAM_SOURCE, GAMELIFT_STREAMS_CONFIG } from '../utils/constants';
+import { APPSYNC_CONFIG, STREAM_SOURCE, GAMELIFT_STREAMS_CONFIG, ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST, IVS_WHIP_ENDPOINT } from '../utils/constants';
 import { RemoteStageStream } from '../types/ivs.types';
 import { ControlMessage } from '../types/chat.types';
 import './PlayTestViews.css';
@@ -90,11 +91,53 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   const [gameplayStream, setGameplayStream] = useState<RemoteStageStream | null>(null);
   const [gameplayAudioStream, setGameplayAudioStream] = useState<RemoteStageStream | null>(null);
   const [webcamStream, setWebcamStream] = useState<RemoteStageStream | null>(null);
-  const [isGameplayBroadcasting, setIsGameplayBroadcasting] = useState(false);
   const [isWebcamBroadcasting, setIsWebcamBroadcasting] = useState(false);
   const [localWebcamStream, setLocalWebcamStream] = useState<MediaStream | null>(null);
   const [isCameraEnabled, setIsCameraEnabled] = useState(true);
   const [isMicEnabled, setIsMicEnabled] = useState(true);
+
+  // Game Selection and Configuration State
+  const [selectedGame, setSelectedGame] = useState(() => {
+    // Find first game that supports direct broadcast, or fallback to first game
+    const directBroadcastGames = Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary).filter(
+      gameName => GAMELIFT_STREAMS_CONFIG.gameLibrary[gameName]?.supportsDirectBroadcast
+    );
+    return directBroadcastGames.length > 0 ? directBroadcastGames[0] : Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary)[0] || '';
+  });
+  const [sgId, setSgId] = useState(() => {
+    const directBroadcastGames = Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary).filter(
+      gameName => GAMELIFT_STREAMS_CONFIG.gameLibrary[gameName]?.supportsDirectBroadcast
+    );
+    const firstGame = directBroadcastGames.length > 0 ? directBroadcastGames[0] : Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary)[0];
+    const gameConfig = firstGame ? GAMELIFT_STREAMS_CONFIG.gameLibrary[firstGame] : null;
+    return gameConfig?.streamGroupId || '';
+  });
+  const [appId, setAppId] = useState(() => {
+    const directBroadcastGames = Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary).filter(
+      gameName => GAMELIFT_STREAMS_CONFIG.gameLibrary[gameName]?.supportsDirectBroadcast
+    );
+    const firstGame = directBroadcastGames.length > 0 ? directBroadcastGames[0] : Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary)[0];
+    const gameConfig = firstGame ? GAMELIFT_STREAMS_CONFIG.gameLibrary[firstGame] : null;
+    return gameConfig?.applicationId || '';
+  });
+  const [regions, setRegions] = useState<string[]>([GAMELIFT_STREAMS_CONFIG.defaultRegion]);
+  const [demoMode, setDemoMode] = useState(false);
+  const [isDirectBroadcastStarting, setIsDirectBroadcastStarting] = useState(false);
+
+  // Broadcast Configuration State
+  const [broadcastConfig, setBroadcastConfig] = useState({
+    encoderType: 'gpu',
+    videoWidth: 1280,
+    videoHeight: 720,
+    videoFramerate: 30,
+    videoBitrate: 4000,
+    enableAudio: true,
+    audioBitrate: 128000,
+    debugPipeline: false,
+  });
+
+  // Settings Modal State
+  const [activeTab, setActiveTab] = useState<'general' | 'broadcast'>('general');
 
   // Takeover State
   const [takeoverState, setTakeoverState] = useState<TakeoverState>({
@@ -109,11 +152,12 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   const [errors, setErrors] = useState<string[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(true);
   const [liveRegionMessage, setLiveRegionMessage] = useState<string>('');
   const [hasConnectedToStage, setHasConnectedToStage] = useState(false);
   const [showInputIndicator, setShowInputIndicator] = useState(true);
   const [ivsGameplayVideoElement, setIvsGameplayVideoElement] = useState<HTMLVideoElement | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Refs
   const gameLiftVideoRef = useRef<HTMLVideoElement>(null);
@@ -122,7 +166,6 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   const ivsGameplayVideoRef = useRef<HTMLVideoElement>(null);
   const participantVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const gameliftstreamsRef = useRef<gameliftstreamssdk.GameLiftStreams | null>(null);
-  const gameplayStageManagerRef = useRef<IVSStageManager>(new IVSStageManager());
   const webcamStageManagerRef = useRef<IVSStageManager>(new IVSStageManager());
   const participantStageManagerRef = useRef<IVSStageManager>(new IVSStageManager());
   const takeoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -242,6 +285,19 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
 
     return () => clearTimeout(timer);
   }, [inputEnabled]);
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   // Determine user role based on email
   const determineUserRole = (): 'player' | 'viewer' => {
@@ -371,19 +427,10 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       
       // Cleanup stage managers and stop IVS broadcasts
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      const gameplayManager = gameplayStageManagerRef.current;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       const webcamManager = webcamStageManagerRef.current;
       // eslint-disable-next-line react-hooks/exhaustive-deps
       const participantManager = participantStageManagerRef.current;
       
-      if (gameplayManager.isActive()) {
-        try {
-          gameplayManager.leaveStage();
-        } catch (error) {
-          console.error('Error leaving gameplay stage:', error);
-        }
-      }
       if (webcamManager.isActive()) {
         try {
           webcamManager.leaveStage();
@@ -477,6 +524,35 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   };
 
   /**
+   * Handle game selection change
+   * Updates application ID and stream group ID based on selected game
+   */
+  const handleGameSelectionChange = (gameName: string) => {
+    setSelectedGame(gameName);
+    const gameConfig = GAMELIFT_STREAMS_CONFIG.gameLibrary[gameName];
+    if (gameConfig) {
+      setAppId(gameConfig.applicationId);
+      setSgId(gameConfig.streamGroupId);
+    }
+  };
+
+  /**
+   * Check if any games support direct broadcast
+   */
+  const getDirectBroadcastGames = () => {
+    return Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary).filter(
+      gameName => GAMELIFT_STREAMS_CONFIG.gameLibrary[gameName]?.supportsDirectBroadcast
+    );
+  };
+
+  /**
+   * Check if direct broadcast is available
+   */
+  const isDirectBroadcastAvailable = () => {
+    return ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST && getDirectBroadcastGames().length > 0;
+  };
+
+  /**
    * Start GameLift gameplay session (player role only)
    * Implements task 10: GameLift session start
    * Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 11.1, 11.3
@@ -484,6 +560,11 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   const startGameplaySession = async () => {
     if (userRole !== 'player') {
       console.error('Only player role can start gameplay sessions');
+      return;
+    }
+
+    if (!isDirectBroadcastAvailable()) {
+      setErrors(prev => [...prev, 'No direct broadcast games available. Please configure games with direct broadcast support.']);
       return;
     }
 
@@ -503,17 +584,68 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
         throw new Error('Failed to initialize GameLift Streams SDK');
       }
 
+      // For direct broadcast games, generate IVS stage token for GameLift instance
+      let gameLiftPublishToken: string | null = null;
+      console.log('Checking if game supports direct broadcast:', {
+        selectedGame,
+        supportsDirectBroadcast: GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.supportsDirectBroadcast
+      });
+      
+      if (GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.supportsDirectBroadcast) {
+        console.log('Generating IVS publish token for GameLift instance...');
+        try {
+          gameLiftPublishToken = await participantStageManagerRef.current.fetchParticipantToken(
+            `${username}-gamelift`,
+            ['PUBLISH'],
+            'gameplay'
+          );
+          console.log('Successfully generated IVS publish token for GameLift instance:', gameLiftPublishToken ? 'Token received' : 'Token is null');
+        } catch (tokenError) {
+          console.error('GameLift publish token generation failed:', tokenError);
+          const errorMsg = 'Failed to generate IVS credentials for GameLift instance. Please try again.';
+          setErrors(prev => [...prev, errorMsg]);
+          setIsStreamStarting(false);
+          return;
+        }
+      } else {
+        console.log('Game does not support direct broadcast, skipping token generation');
+      }
+
       // Generate signal request from GameLift Streams SDK
       const signalRequest = await gameliftstreamsRef.current.generateSignalRequest();
       
+      // Create payload with IVS credentials as environment variables for direct broadcast
+      const shouldIncludeEnvVars = GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.supportsDirectBroadcast && gameLiftPublishToken;
+      console.log('Should include environment variables:', {
+        supportsDirectBroadcast: GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.supportsDirectBroadcast,
+        hasToken: !!gameLiftPublishToken,
+        shouldInclude: shouldIncludeEnvVars
+      });
+      
       const payload = {
-        AppIdentifier: GAMELIFT_STREAMS_CONFIG.playTestingApplicationId,
-        SGIdentifier: GAMELIFT_STREAMS_CONFIG.playTestingStreamGroupId,
+        AppIdentifier: appId,
+        SGIdentifier: sgId,
         SignalRequest: signalRequest ?? '',
-        Regions: [GAMELIFT_STREAMS_CONFIG.defaultRegion]
+        Regions: regions,
+        // Include IVS environment variables for direct broadcast games
+        ...(shouldIncludeEnvVars && {
+          AdditionalEnvironmentVariables: {
+            IVS_WHIP_ENDPOINT: IVS_WHIP_ENDPOINT,
+            IVS_STAGE_TOKEN: gameLiftPublishToken,
+            ENCODER_TYPE: broadcastConfig.encoderType,
+            VIDEO_WIDTH: broadcastConfig.videoWidth.toString(),
+            VIDEO_HEIGHT: broadcastConfig.videoHeight.toString(),
+            VIDEO_FRAMERATE: broadcastConfig.videoFramerate.toString(),
+            VIDEO_BITRATE: broadcastConfig.videoBitrate.toString(),
+            ENABLE_AUDIO: broadcastConfig.enableAudio.toString(),
+            AUDIO_BITRATE: broadcastConfig.audioBitrate.toString(),
+            DEBUG_PIPELINE: broadcastConfig.debugPipeline.toString()
+          }
+        })
       };
 
-      console.log('Creating GameLift stream session...');
+      console.log('Creating GameLift stream session with IVS environment variables...');
+      console.log('Payload being sent:', JSON.stringify(payload, null, 2));
 
       // Create stream session via API
       const restOperation = post({
@@ -534,7 +666,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       console.log('Stream session created, waiting for ACTIVE status...');
       
       // Wait for session to become ACTIVE and start stream
-      await waitForACTIVE(data.arn, GAMELIFT_STREAMS_CONFIG.playTestingStreamGroupId);
+      await waitForACTIVE(data.arn, sgId);
     } catch (error) {
       console.error('Failed to start gameplay session:', error);
       handleGameLiftError(error);
@@ -616,127 +748,15 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       
       console.log('GameLift stream started successfully - hasGameplayControl should now be true');
       
-      // Auto-start IVS broadcast (gameplay + webcam)
-      // Requirement 11.1, 11.3: Automatic IVS broadcast initiation
-      await autoStartIVSBroadcast();
+      // For direct broadcast games, the broadcast happens on the GameLift server
+      // No need to start IVS broadcast from the browser
     } catch (error) {
       console.error('Failed to start GameLift stream:', error);
       handleGameLiftError(error);
     }
   };
 
-  /**
-   * Automatically start IVS broadcast for gameplay and webcam
-   * Implements requirement 11.1, 11.3: Automatic IVS broadcast
-   */
-  const autoStartIVSBroadcast = async () => {
-    console.log('Auto-starting IVS broadcast...');
-    
-    try {
-      // Start gameplay broadcast
-      await startGameplayBroadcast();
-      
-      // Note: Webcam broadcast is already active from participant connection
-      // The participant webcam stream is separate from the gameplay broadcast
-      
-      console.log('IVS broadcast started successfully');
-    } catch (error) {
-      console.error('Failed to auto-start IVS broadcast:', error);
-      // Requirement 16.2: Handle IVS broadcast failures with retry option
-      handleIVSBroadcastError(error, 'gameplay');
-    }
-  };
 
-  /**
-   * Start gameplay broadcast to IVS stage
-   * Implements requirement 16.2: Handle IVS broadcast failures
-   */
-  const startGameplayBroadcast = async () => {
-    if (!gameLiftVideoRef.current) {
-      throw new Error('GameLift video element not available');
-    }
-
-    console.log('Starting gameplay IVS broadcast...');
-
-    try {
-      // Fetch participant token with gameplay stream_source attribute
-      const participantToken = await gameplayStageManagerRef.current.fetchParticipantToken(
-        username,
-        ['PUBLISH'],
-        STREAM_SOURCE.GAMEPLAY as 'gameplay'
-      );
-
-      // Capture GameLift video/audio using captureStream
-      const videoElement = gameLiftVideoRef.current;
-      const audioElement = gameLiftAudioRef.current;
-
-      // Capture video stream (30 fps for better performance)
-      let mediaStream: MediaStream;
-      if (typeof videoElement.captureStream === 'function') {
-        mediaStream = videoElement.captureStream(30);
-      } else if (typeof (videoElement as any).mozCaptureStream === 'function') {
-        mediaStream = (videoElement as any).mozCaptureStream(30);
-      } else {
-        throw new Error('captureStream is not supported in this browser');
-      }
-
-      // Add audio tracks if available
-      if (audioElement) {
-        try {
-          let audioStream: MediaStream;
-          if (typeof audioElement.captureStream === 'function') {
-            audioStream = audioElement.captureStream();
-          } else if (typeof (audioElement as any).mozCaptureStream === 'function') {
-            audioStream = (audioElement as any).mozCaptureStream();
-          } else {
-            throw new Error('captureStream is not supported for audio');
-          }
-          
-          const audioTracks = audioStream.getAudioTracks();
-          audioTracks.forEach(track => {
-            mediaStream.addTrack(track);
-          });
-        } catch (audioError) {
-          console.warn('Failed to capture audio stream, continuing with video only:', audioError);
-        }
-      }
-
-      // Create LocalStageStream instances for video and audio tracks
-      const stageStreams = gameplayStageManagerRef.current.createLocalStreams(mediaStream);
-
-      // Create and configure the stage
-      await gameplayStageManagerRef.current.createStage({
-        participantToken,
-        streams: stageStreams,
-        onConnectionStateChange: (state: StageConnectionState) => {
-          console.log('Gameplay stage connection state:', state);
-          if (state === StageConnectionState.CONNECTED) {
-            console.log('Successfully connected to gameplay IVS stage');
-            setIsGameplayBroadcasting(true);
-          } else if (state === StageConnectionState.DISCONNECTED) {
-            setIsGameplayBroadcasting(false);
-            // Requirement 16.5: Handle network connectivity loss
-            if (hasGameplayControl && gameLiftStatus === StreamState.RUNNING) {
-              setErrors(prev => [...prev, 'Broadcast connection lost. Attempting to reconnect...']);
-            }
-          }
-        },
-        onError: (error: Error) => {
-          console.error('Gameplay stage error:', error);
-          // Requirement 16.2: Handle IVS broadcast failures
-          handleIVSBroadcastError(error, 'gameplay');
-        }
-      });
-
-      // Join the stage
-      await gameplayStageManagerRef.current.joinStage();
-
-      console.log('Successfully started gameplay IVS broadcast');
-    } catch (error) {
-      console.error('Failed to start gameplay IVS broadcast:', error);
-      throw error;
-    }
-  };
 
   /**
    * Handle GameLift errors with user-friendly messages
@@ -887,25 +907,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
     setErrors(prev => [...prev, errorMessage]);
   };
 
-  /**
-   * Retry IVS broadcast manually
-   * Implements requirement 16.2: Provide retry option for broadcast failures
-   */
-  const retryIVSBroadcast = async () => {
-    if (!hasGameplayControl || gameLiftStatus !== StreamState.RUNNING) {
-      setErrors(prev => [...prev, 'Cannot retry broadcast - gameplay is not active']);
-      return;
-    }
 
-    try {
-      setErrors(prev => prev.filter(e => !e.includes('broadcast')));
-      await startGameplayBroadcast();
-      setErrors(prev => [...prev, 'Broadcast started successfully']);
-    } catch (error) {
-      console.error('Failed to retry IVS broadcast:', error);
-      handleIVSBroadcastError(error, 'gameplay');
-    }
-  };
 
   /**
    * Request takeover of gameplay control (anyone without control can request)
@@ -1052,15 +1054,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
         return;
       }
 
-      // Properly stop IVS broadcasts on takeover (Requirement 8.2, 8.3)
-      if (isGameplayBroadcasting) {
-        console.log('Stopping gameplay IVS broadcast');
-        try {
-          await stopGameplayBroadcast();
-        } catch (error) {
-          console.error('Error stopping gameplay broadcast:', error);
-        }
-      }
+      // For direct broadcast games, broadcast stops automatically when GameLift session ends
 
       // Properly disconnect GameLift on takeover (Requirement 8.1)
       if (gameliftstreamsRef.current) {
@@ -1744,8 +1738,8 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
 
           console.log('Successfully connected to GameLift session');
 
-          // Auto-start IVS broadcast (Requirement 9.4, 11.5)
-          await autoStartIVSBroadcast();
+          // For direct broadcast games, the broadcast happens on the GameLift server
+          // No need to start IVS broadcast from the browser
 
           // Update takeover state to 'complete'
           setTakeoverState({
@@ -1940,6 +1934,8 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
     console.log('Takeover cancellation processed - request button will be re-enabled');
   };
 
+
+
   /**
    * Toggle camera on/off
    * Implements requirement 4.2
@@ -2072,20 +2068,12 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   const stopGameplaySession = () => {
     console.log('Stopping gameplay session');
     
-    // Stop IVS broadcasts if active
-    if (isGameplayBroadcasting) {
-      try {
-        stopGameplayBroadcast();
-      } catch (error) {
-        console.error('Error stopping gameplay broadcast:', error);
-      }
-    }
-
-    // Properly close GameLift connection
+    // Properly close GameLift connection - this will signal the server to terminate the session
     if (gameliftstreamsRef.current) {
       try {
         gameliftstreamsRef.current.close();
         gameliftstreamsRef.current = null;
+        console.log('GameLift connection closed - session will terminate on server');
       } catch (error) {
         console.error('Error closing GameLift connection:', error);
       }
@@ -2098,6 +2086,10 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
     setInputEnabled(false);
     setSessionId('');
 
+    // Clear stored session ID
+    localStorage.removeItem('lastGameLiftSessionId');
+    localStorage.removeItem('lastGameLiftSessionTimestamp');
+
     // Exit fullscreen if active
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(error => {
@@ -2108,20 +2100,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
     // Reset GameLift SDK
     resetGameLiftStreamsSDK();
 
-    console.log('Gameplay session stopped');
-  };
-
-  /**
-   * Stop gameplay broadcast to IVS stage
-   */
-  const stopGameplayBroadcast = async () => {
-    try {
-      await gameplayStageManagerRef.current.leaveStage();
-      setIsGameplayBroadcasting(false);
-      console.log('Successfully stopped gameplay IVS broadcast');
-    } catch (error) {
-      console.error('Failed to stop gameplay IVS broadcast:', error);
-    }
+    console.log('Gameplay session stopped - local cleanup complete');
   };
 
   /**
@@ -2135,7 +2114,8 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
     if (!document.fullscreenElement) {
       // Enter fullscreen
       if (containerElement) {
-        if (!inputEnabled) {
+        // Only attach input if user has gameplay control (is the player with active GameLift session)
+        if (hasGameplayControl && gameLiftStatus === StreamState.RUNNING && !inputEnabled) {
           attachInput();
         }
         
@@ -2143,11 +2123,10 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
           console.warn('Fullscreen request failed:', error);
         });
         
-        // Lock keyboard for better gaming experience
-        // @ts-ignore
-        if (navigator.keyboard) {
-          // @ts-ignore
-          const keyboard = navigator.keyboard;
+        // Lock keyboard for better gaming experience (only for players with control)
+        if (hasGameplayControl && 'keyboard' in navigator) {
+          // @ts-ignore - Keyboard API not fully supported in TypeScript yet
+          const keyboard = (navigator as any).keyboard;
           keyboard.lock(['Escape']).catch(() => {});
         }
       }
@@ -2175,7 +2154,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   const renderRoleBasedActions = () => {
     // console.log('renderRoleBasedActions called:', { userRole, hasGameplayControl, currentController, gameplayStream });
     
-    // Priority 1: Show takeover button for anyone without control when there's an active gameplay stream
+    // Show takeover button for anyone without control when there's an active gameplay stream
     // (either from currentController or from gameplayStream presence)
     if (!hasGameplayControl && (currentController || gameplayStream)) {
       console.log('Rendering Request Takeover button');
@@ -2193,88 +2172,18 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       );
     }
     
-    // Priority 2: Show start button for player role when they don't have control and no active stream
-    if (userRole === 'player' && !hasGameplayControl) {
-      console.log('Rendering Start Gameplay Session button');
-      return (
-        <button 
-          className="btn btn-success"
-          onClick={startGameplaySession}
-          disabled={isStreamStarting}
-          aria-label="Start gameplay session"
-          aria-busy={isStreamStarting}
-        >
-          {isStreamStarting ? 'Starting...' : 'Start Gameplay Session'}
-        </button>
-      );
-    }
-    
-    console.log('No button to render');
+    // No start button here - it's controlled from the settings dialog
     return null;
   };
 
   /**
    * Render gameplay controls (only when user has control)
-   * Implements task 11: Gameplay controls for current controller
-   * Requirements: 5.5
-   * Shows controls only when hasGameplayControl is true
-   * Implements task 28: Add ARIA labels to all buttons
+   * Note: Start/stop game is controlled from settings dialog
+   * Note: Input is controlled by clicking on/off the video element
    */
   const renderGameplayControls = () => {
-    if (!hasGameplayControl) return null;
-
-    return (
-      <div 
-        className="gameplay-controls" 
-        role="toolbar"
-        aria-label="Gameplay controls"
-      >
-        <button 
-          className="control-button stop" 
-          onClick={stopGameplaySession}
-          data-bs-toggle="tooltip"
-          data-bs-placement="top"
-          title="Stop gameplay session"
-          aria-label="Stop gameplay session"
-        >
-          <i className="bi bi-stop-circle" aria-hidden="true"></i>
-        </button>
-        <button 
-          className="control-button" 
-          onClick={toggleFullscreen}
-          data-bs-toggle="tooltip"
-          data-bs-placement="top"
-          title="Toggle fullscreen mode"
-          aria-label="Toggle fullscreen mode"
-        >
-          <i className="bi bi-arrows-fullscreen" aria-hidden="true"></i>
-        </button>
-        <button 
-          className={`control-button ${inputEnabled ? 'active' : ''}`}
-          onClick={toggleInput}
-          data-bs-toggle="tooltip"
-          data-bs-placement="top"
-          title={inputEnabled ? 'Disable input' : 'Enable input'}
-          aria-label={inputEnabled ? 'Disable input' : 'Enable input'}
-          aria-pressed={inputEnabled}
-        >
-          <i className="bi bi-controller" aria-hidden="true"></i>
-        </button>
-        {/* Requirement 16.2: Provide retry option for broadcast failures */}
-        {!isGameplayBroadcasting && gameLiftStatus === StreamState.RUNNING && (
-          <button 
-            className="control-button retry" 
-            onClick={retryIVSBroadcast}
-            data-bs-toggle="tooltip"
-            data-bs-placement="top"
-            title="Retry IVS broadcast"
-            aria-label="Retry IVS broadcast"
-          >
-            <i className="bi bi-arrow-clockwise" aria-hidden="true"></i>
-          </button>
-        )}
-      </div>
-    );
+    // No controls needed in sidebar - everything is controlled elsewhere
+    return null;
   };
 
   /**
@@ -2487,6 +2396,11 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
             <span className="role-badge">
               ({userRole})
             </span>
+            {selectedGame && (
+              <span className="game-badge" title={`Selected game: ${selectedGame}`}>
+                {selectedGame}
+              </span>
+            )}
           </div>
         </div>
         <nav className="button-group" role="navigation" aria-label="Main navigation">
@@ -2497,13 +2411,15 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
           >
             <i className="bi bi-arrow-left" aria-hidden="true"></i> Back
           </button>
-          <button 
-            className="control-button" 
-            onClick={openSettingsModal}
-            aria-label="Open settings"
-          >
-            <i className="bi bi-gear" aria-hidden="true"></i> Settings
-          </button>
+          {userRole === 'player' && (
+            <button 
+              className="control-button" 
+              onClick={openSettingsModal}
+              aria-label="Open settings"
+            >
+              <i className="bi bi-gear" aria-hidden="true"></i> Settings
+            </button>
+          )}
           <button 
             className="control-button" 
             onClick={signOut}
@@ -2572,11 +2488,22 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
               />
             )}
 
+            {/* Fullscreen Toggle Button */}
+            {(hasGameplayControl && gameLiftStatus === StreamState.RUNNING) || (!hasGameplayControl && gameplayStream) ? (
+              <button
+                className="fullscreen-toggle-btn"
+                onClick={toggleFullscreen}
+                title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+              >
+                <i className={`bi ${isFullscreen ? 'bi-fullscreen-exit' : 'bi-fullscreen'}`}></i>
+              </button>
+            ) : null}
+
             {/* Show status when user has gameplay control */}
             {hasGameplayControl && gameLiftStatus === StreamState.RUNNING && (
               <div className="stream-status">
-                <div className={`status-dot ${isGameplayBroadcasting ? 'live' : 'inactive'}`}></div>
-                <span>{isGameplayBroadcasting ? 'LIVE - Broadcasting' : 'Not Broadcasting'}</span>
+                <div className="status-dot live"></div>
+                <span>LIVE - Direct Broadcast Active</span>
               </div>
             )}
 
@@ -2683,6 +2610,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
             {!hasGameplayControl && !gameplayStream && !isStreamStarting && (
               <div className="offline-message">
                 <h3>No Gameplay Stream</h3>
+                <p>Use the Settings dialog to start a gameplay session or wait for someone else to start one.</p>
                 {renderRoleBasedActions()}
               </div>
             )}
@@ -2789,87 +2717,70 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       {/* Takeover Notification Modal */}
       {renderTakeoverNotification()}
 
-      {/* Settings Modal */}
-      {/* Implements task 28: Add ARIA labels and manage focus for modals */}
-      {showSettingsModal && (
-        <div 
-          className="modal show d-block modal-backdrop-medium" 
-          tabIndex={-1} 
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="settings-modal-title"
-        >
-          <div className="modal-dialog modal-lg" ref={settingsModalRef}>
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title" id="settings-modal-title">Interactive Play Test Settings</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={closeSettingsModal}
-                  aria-label="Close settings"
-                ></button>
-              </div>
-              <div className="modal-body">
-                <h6 className="mb-3">User Information</h6>
-                <div className="mb-4">
-                  <p><strong>Username:</strong> {username}</p>
-                  <p><strong>Role:</strong> {userRole}</p>
-                  <p><strong>Email:</strong> {user.email}</p>
-                </div>
-
-                <h6 className="mb-3">Status</h6>
-                <div className="row g-3 mb-4">
-                  <div className="col-md-4">
-                    <div 
-                      className="card-custom"
-                      role="status"
-                      aria-label={`GameLift status: ${gameLiftStatus === StreamState.RUNNING ? 'running' : 'stopped'}`}
-                    >
-                      <h6 className="card-title-custom">GameLift</h6>
-                      <p className="card-text-custom">
-                        <strong>{gameLiftStatus === StreamState.RUNNING ? 'RUNNING' : 'STOPPED'}</strong>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="col-md-4">
-                    <div 
-                      className="card-custom"
-                      role="status"
-                      aria-label={`Control status: ${hasGameplayControl ? 'you have control' : 'no control'}`}
-                    >
-                      <h6 className="card-title-custom">Control</h6>
-                      <p className="card-text-custom">
-                        <strong>{hasGameplayControl ? 'You have control' : 'No control'}</strong>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="col-md-4">
-                    <div 
-                      className="card-custom"
-                      role="status"
-                      aria-label={`${participantStreams.size} participants connected`}
-                    >
-                      <h6 className="card-title-custom">Participants</h6>
-                      <p className="card-text-custom">
-                        <strong>{participantStreams.size}</strong>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button 
-                  className="btn btn-secondary" 
-                  onClick={closeSettingsModal}
-                  aria-label="Close settings modal"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Settings Modal - Only show for player role */}
+      {userRole === 'player' && (
+        <SettingsModal
+          showModal={showSettingsModal}
+          onClose={closeSettingsModal}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          showOnlyDirectBroadcastGames={true}
+          
+          // GameLift State
+          gameLiftStatus={gameLiftStatus}
+          selectedGame={selectedGame}
+          sgId={sgId}
+          appId={appId}
+          regions={regions}
+          sessionId={sessionId}
+          lastSessionId={lastSessionId}
+          isStreamStarting={isStreamStarting}
+          isDirectBroadcastStarting={isDirectBroadcastStarting}
+          isFullscreen={isFullscreen}
+          
+          // Broadcast State (not used for direct broadcast but required by interface)
+          isGameplayBroadcasting={false}
+          isGameplayBroadcastStarting={false}
+          isWebcamBroadcasting={isWebcamBroadcasting}
+          isWebcamBroadcastStarting={false}
+          demoMode={demoMode}
+          
+          // Broadcast Config
+          broadcastConfig={broadcastConfig}
+          
+          // Event Handlers
+          onGameSelectionChange={handleGameSelectionChange}
+          setSgId={setSgId}
+          setAppId={setAppId}
+          setRegions={setRegions}
+          setSessionId={setSessionId}
+          setDemoMode={setDemoMode}
+          setBroadcastConfig={setBroadcastConfig}
+          
+          // Action Handlers
+          onStartGame={startGameplaySession}
+          onStopGame={stopGameplaySession}
+          onReconnect={() => {
+            // Implement reconnect logic if needed
+            console.log('Reconnect not implemented for Interactive Play Test');
+          }}
+          onStartGameplayBroadcast={() => {
+            // Not used in direct broadcast mode
+            console.log('Manual gameplay broadcast not available in direct broadcast mode');
+          }}
+          onStopGameplayBroadcast={() => {
+            // Not used in direct broadcast mode
+            console.log('Manual gameplay broadcast not available in direct broadcast mode');
+          }}
+          onStartWebcamBroadcast={() => {
+            // Webcam broadcast is handled automatically
+            console.log('Webcam broadcast is handled automatically');
+          }}
+          onStopWebcamBroadcast={() => {
+            // Webcam broadcast is handled automatically
+            console.log('Webcam broadcast is handled automatically');
+          }}
+        />
       )}
     </div>
   );

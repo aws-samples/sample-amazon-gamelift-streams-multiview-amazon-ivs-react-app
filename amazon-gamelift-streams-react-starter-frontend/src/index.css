@@ -61,6 +61,18 @@ video::-webkit-media-controls {
   border-left: 4px solid #0dcaf0;
 }
 
+/* Override Bootstrap alert-warning for better contrast */
+.alert-warning {
+  background: rgba(255, 193, 7, 0.95) !important;
+  border-color: rgba(255, 193, 7, 0.6) !important;
+  color: #1a1a1a !important;
+  font-weight: 600 !important;
+}
+
+.alert-warning * {
+  color: #1a1a1a !important;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .navbar-brand {
