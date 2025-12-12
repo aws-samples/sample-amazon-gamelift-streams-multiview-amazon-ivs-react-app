@@ -118,7 +118,7 @@
 /* Input Status Indicators */
 .input-status-indicator {
   position: absolute;
-  bottom: 10px;
+  top: 10px;
   left: 10px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
