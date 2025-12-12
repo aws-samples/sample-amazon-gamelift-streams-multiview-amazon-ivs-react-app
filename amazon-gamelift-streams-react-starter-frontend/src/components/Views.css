@@ -578,6 +578,11 @@
   font-size: 1.5rem;
 }
 
+.settings-modal-body {
+  max-height: 450px;
+  overflow-y: auto;
+}
+
 .modal-body-custom {
   background: transparent;
   padding: 1.5rem;
