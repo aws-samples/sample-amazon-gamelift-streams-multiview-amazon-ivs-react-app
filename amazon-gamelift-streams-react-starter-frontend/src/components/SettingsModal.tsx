@@ -140,7 +140,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {activeTab === 'general' && (
                 <>
                   {/* GameLift Configuration */}
-                  <h6 className="mb-3">GameLift Stream Configuration</h6>
+                  {/* <h6 className="mb-3">GameLift Stream Configuration</h6> */}
                   <div className="row g-3 mb-4">
                     <div className="col-md-12">
                       <label htmlFor="gameSelection" className="form-label">Game Selection</label>
@@ -232,7 +232,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   */}
 
                   {/* Demo Mode */}
-                  <h6 className="mb-3">Demo Mode</h6>
+                  {/* <h6 className="mb-3">Demo Mode</h6> */}
                   <div className="card-custom mb-3">
                     <div className="d-flex justify-content-between align-items-center">
                       <div>
@@ -265,9 +265,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
 
                   {/* Encoder Options */}
-                  <h6 className="mb-3">Encoder Options</h6>
+                  {/* <h6 className="mb-3">Encoder Options</h6> */}
                   <div className="row g-3 mb-4">
-                    <div className="col-md-6">
+                    <div className="col-md-4">
                       <label htmlFor="encoderType" className="form-label">Encoder Type</label>
                       <select
                         className="form-select"
@@ -282,10 +282,43 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         GPU encoding provides better performance
                       </small>
                     </div>
+                    <div className="col-md-4">
+                      <label htmlFor="audioBitrate" className="form-label">Audio Capture</label>
+                      <div className="form-check form-switch">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          role="switch"
+                          id="enableAudio"
+                          checked={broadcastConfig.enableAudio}
+                          onChange={(e) => setBroadcastConfig({...broadcastConfig, enableAudio: e.target.checked})}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <label className="form-check-label" htmlFor="enableAudio">
+                          Enable Audio Capture
+                        </label>
+                      </div>
+                    </div>
+                    {broadcastConfig.enableAudio && (
+                      <div className="col-md-4">
+                        <label htmlFor="audioBitrate" className="form-label">Audio Bitrate (bps)</label>
+                        <select
+                          className="form-select"
+                          id="audioBitrate"
+                          value={broadcastConfig.audioBitrate}
+                          onChange={(e) => setBroadcastConfig({...broadcastConfig, audioBitrate: parseInt(e.target.value)})}
+                        >
+                          <option value="64000">64 kbps</option>
+                          <option value="128000">128 kbps</option>
+                          <option value="192000">192 kbps</option>
+                          <option value="256000">256 kbps</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
 
                   {/* Video Options */}
-                  <h6 className="mb-3">Video Options</h6>
+                  {/* <h6 className="mb-3">Video Options</h6> */}
                   <div className="row g-3 mb-4">
                     <div className="col-md-3">
                       <label htmlFor="videoWidth" className="form-label">Video Width (pixels)</label>
@@ -339,42 +372,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Audio Options */}
-                  <h6 className="mb-3">Audio Options</h6>
-                  <div className="row g-3 mb-4">
-                    <div className="col-md-6">
-                      <div className="form-check form-switch">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          role="switch"
-                          id="enableAudio"
-                          checked={broadcastConfig.enableAudio}
-                          onChange={(e) => setBroadcastConfig({...broadcastConfig, enableAudio: e.target.checked})}
-                          style={{ cursor: 'pointer' }}
-                        />
-                        <label className="form-check-label" htmlFor="enableAudio">
-                          Enable Audio Capture
-                        </label>
-                      </div>
-                    </div>
-                    {broadcastConfig.enableAudio && (
-                      <div className="col-md-6">
-                        <label htmlFor="audioBitrate" className="form-label">Audio Bitrate (bps)</label>
-                        <select
-                          className="form-select"
-                          id="audioBitrate"
-                          value={broadcastConfig.audioBitrate}
-                          onChange={(e) => setBroadcastConfig({...broadcastConfig, audioBitrate: parseInt(e.target.value)})}
-                        >
-                          <option value="64000">64 kbps</option>
-                          <option value="128000">128 kbps</option>
-                          <option value="192000">192 kbps</option>
-                          <option value="256000">256 kbps</option>
-                        </select>
-                      </div>
-                    )}
-                  </div>
                 </>
               )}
             </div>
