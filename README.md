@@ -104,7 +104,7 @@ It is important to understand the difference between Amazon GameLift Streams `Pr
         - Each game entry should have a descriptive name as the key (e.g., "Unity Explorer", "My Racing Game")
         - Each game configuration includes `applicationId`, `streamGroupId`, and `supportsDirectBroadcast` properties
         - The Player View will show a dropdown to select between configured games
-    - Update `GAMELIFT_STREAMS_CONFIG.playTestingApplicationId` and `GAMELIFT_STREAMS_CONFIG.playTestingStreamGroupId` with the single game configuration to use for Interactive Play Testing
+        - **Important**: The Interactive Play Testing view only supports games with `supportsDirectBroadcast: true`
     - Update `GAMELIFT_STREAMS_CONFIG.defaultRegion` with your preferred AWS region (default is `us-west-2`)
     - Update `API_CONFIG.endpoint` with the API endpoint from step 6 above. **Ensure that the API endpoint has no trailing slash `/` at the end**.
 10. Within the `/amazon-gamelift-streams-react-starter-frontend` directory, run `npm run build` to build the single page application frontend. Don't forget that if you make changes to your frontend, you need to re-build with `npm run build` before redeploying the frontend cdk stack.
@@ -167,6 +167,8 @@ The application includes a unified view for conducting interactive play testing 
 -   Media controls for camera and microphone
 -   Dynamic control transfer between participants
 -   Automatic fallback to view-only mode if media permissions are denied
+
+**Important:** The Interactive Play Testing view only supports games configured with `supportsDirectBroadcast: true` in the `gameLibrary`. This ensures optimal performance using the GameLift-IVS Direct Broadcast feature for reduced latency and improved stream quality.
 
 ### Using the Interactive Play Testing View
 
@@ -502,7 +504,7 @@ In the Player View settings dialog, users can select from the configured games u
 
 ### Interactive Play Testing Configuration
 
-The Interactive Play Testing view uses a single game configuration specified by `playTestingApplicationId` and `playTestingStreamGroupId`. This provides a dedicated, consistent environment for play testing sessions without the complexity of game selection.
+The Interactive Play Testing view automatically uses games from the `gameLibrary` that have `supportsDirectBroadcast: true`. This ensures that play testing sessions use the GameLift-IVS Direct Broadcast feature for optimal performance and reduced latency. The view will automatically select the first available direct broadcast game, or display an error if no direct broadcast games are configured.
 
 ### Configuration Example
 
@@ -512,21 +514,19 @@ export const GAMELIFT_STREAMS_CONFIG = {
         'Unity Explorer': {
             applicationId: 'a-gx0dbYn9h',
             streamGroupId: 'sg-qZSCl3bBM',
-            supportsDirectBroadcast: false,
+            supportsDirectBroadcast: false, // Player View only
         },
         'Racing Demo': {
             applicationId: 'a-HLqLlLfPc',
             streamGroupId: 'sg-Ou8KqwAbq',
-            supportsDirectBroadcast: true,
+            supportsDirectBroadcast: true, // Available in both Player View and Interactive Play Testing
         },
     },
-    playTestingApplicationId: 'a-gx0dbYn9h',
-    playTestingStreamGroupId: 'sg-qZSCl3bBM',
     defaultRegion: 'us-west-2',
 };
 ```
 
-This configuration provides flexibility to work with multiple games while maintaining simplicity for focused play testing scenarios.
+This configuration provides flexibility to work with multiple games. Games with `supportsDirectBroadcast: true` are available in both the Player View and Interactive Play Testing view, while games with `supportsDirectBroadcast: false` are only available in the Player View.
 
 ## Multi-Location Stream Groups
 
