@@ -287,6 +287,15 @@
   box-shadow: none;
 }
 
+/* Controller Icon */
+.controller-icon {
+  color: #4ecdc4;
+  font-size: 1rem;
+  margin-left: 0.5rem;
+  text-shadow: 0 0 4px rgba(78, 205, 196, 0.6);
+  animation: pulse 2s infinite;
+}
+
 /* Loading Overlay */
 .loading-overlay {
   position: absolute;
@@ -1108,13 +1117,15 @@ t Toggle Button */
 
 /* Local Webcam Container */
 .webcam-video-container .stream-status {
-  background: rgba(233, 69, 96, 0.9);
-  border-color: rgba(233, 69, 96, 0.5);
+  background: rgba(15, 23, 41, 0.9);
+  border-color: rgba(78, 205, 196, 0.3);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.8rem;
 }
 
 .webcam-video-container .stream-status:hover {
-  background: rgba(233, 69, 96, 0.95);
-  border-color: rgba(233, 69, 96, 0.7);
+  background: rgba(15, 23, 41, 0.95);
+  border-color: rgba(78, 205, 196, 0.5);
 }
 
 /* Media Controls Enhancement */

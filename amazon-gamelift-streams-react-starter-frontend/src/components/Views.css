@@ -714,6 +714,11 @@
   .button-group {
     flex-wrap: wrap;
   }
+
+  .settings-modal-body {
+    max-height: 250px;
+    overflow-y: auto;
+  }
 }
 
 @media (max-width: 576px) {
@@ -729,6 +734,11 @@
 
   .button-group {
     width: 100%;
+  }
+
+  .settings-modal-body {
+    max-height: 250px;
+    overflow-y: auto;
   }
 }
 
