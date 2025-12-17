@@ -36,11 +36,30 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
+  // Remote Player Control State
+  const [isPlayerSpawned, setIsPlayerSpawned] = useState(false);
+  const isPlayerSpawnedRef = useRef(false); // Ref to track spawn state for closures
+  const [isVideoFocused, setIsVideoFocused] = useState(false);
 
   // Refs
   const gameplayVideoRef = useRef<HTMLVideoElement>(null);
   const webcamVideoRef = useRef<HTMLVideoElement>(null);
   const stageManagerRef = useRef<IVSStageManager>(new IVSStageManager());
+  const gameplayContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Keyboard state tracking
+  const pressedKeysRef = useRef<Set<string>>(new Set());
+  const animationFrameRef = useRef<number | null>(null);
+  const lastSpacebarSentRef = useRef<number>(0);
+  const spacebarJustPressedRef = useRef<boolean>(false);
+  const lastMessageSentRef = useRef<number>(0);
+  const messageRateLimit = 1000 / 20; // 20 messages per second (leaving buffer below 25/sec limit)
+  
+  // Inactivity tracking
+  const lastActivityRef = useRef<number>(Date.now());
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const inactivityTimeout = 5000; // 5 seconds (configurable)
 
   // Chat Client
   const [chatClient] = useState(() => new AppSyncChatClient(APPSYNC_CONFIG));
@@ -59,9 +78,43 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
         stageManager.leaveStage();
       }
       client.disconnect();
+      
+      // Cancel animation frame if running
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      
+      // Clear inactivity timer
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Start/stop keyboard state sending based on player spawn and focus
+  useEffect(() => {
+    if (isPlayerSpawned && isVideoFocused) {
+      // Start the animation frame loop
+      animationFrameRef.current = requestAnimationFrame(sendKeyboardState);
+    } else {
+      // Stop the animation frame loop
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      
+      // Clear pressed keys when losing focus
+      pressedKeysRef.current.clear();
+    }
+
+    return () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlayerSpawned, isVideoFocused]);
 
   /**
    * Handle subscribe button click
@@ -84,6 +137,230 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
       setIsSubscribed(true);
     } catch (error) {
       console.error('Failed to send subscribe event:', error);
+    }
+  };
+
+  /**
+   * Spawn remote player in the game
+   */
+  const spawnRemotePlayer = async () => {
+    if (isPlayerSpawned) {
+      console.log('Player already spawned');
+      return;
+    }
+
+    try {
+      const spawnEvent = {
+        action: 'SPAWN_PLAYER',
+        user: username,
+        message: '',
+        timestamp: new Date().toISOString()
+      };
+
+      // Publish spawn event using publishRaw
+      await (chatClient as any).publishRaw(spawnEvent);
+      
+      console.log('Sent SPAWN_PLAYER event for user:', username);
+      setIsPlayerSpawned(true);
+      isPlayerSpawnedRef.current = true;
+      
+      // Reset activity tracking
+      lastActivityRef.current = Date.now();
+      startInactivityTimer();
+      
+      // Focus the gameplay container to enable keyboard controls
+      if (gameplayContainerRef.current) {
+        gameplayContainerRef.current.focus();
+      }
+    } catch (error) {
+      console.error('Failed to spawn remote player:', error);
+      setErrors(prev => [...prev, `Failed to spawn player: ${error instanceof Error ? error.message : 'Unknown error'}`]);
+    }
+  };
+
+  /**
+   * Despawn remote player in the game
+   */
+  const despawnRemotePlayer = async () => {
+    // Use ref instead of state to avoid closure issues
+    if (!isPlayerSpawnedRef.current) {
+      console.log('Despawn called but player not spawned (ref check)');
+      return;
+    }
+
+    console.log('Attempting to despawn player:', username);
+
+    try {
+      const despawnEvent = {
+        action: 'DESPAWN_PLAYER',
+        user: username,
+        message: '',
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('Despawn event:', despawnEvent);
+
+      // Publish despawn event using publishRaw
+      const result = await (chatClient as any).publishRaw(despawnEvent);
+      
+      console.log('DESPAWN_PLAYER publishRaw result:', result);
+      console.log('Successfully sent DESPAWN_PLAYER event for user:', username);
+      
+      setIsPlayerSpawned(false);
+      isPlayerSpawnedRef.current = false;
+      
+      // Clear inactivity timer
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
+    } catch (error) {
+      console.error('Failed to despawn remote player:', error);
+      console.error('Error details:', error);
+    }
+  };
+
+  /**
+   * Start inactivity timer
+   */
+  const startInactivityTimer = () => {
+    // Clear existing timer
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+
+    // Start new timer
+    inactivityTimerRef.current = setTimeout(() => {
+      console.log('Player inactive for', inactivityTimeout / 1000, 'seconds - despawning');
+      despawnRemotePlayer();
+    }, inactivityTimeout);
+  };
+
+  /**
+   * Reset inactivity timer (called on any player activity)
+   */
+  const resetInactivityTimer = () => {
+    lastActivityRef.current = Date.now();
+    if (isPlayerSpawnedRef.current) {
+      startInactivityTimer();
+    }
+  };
+
+  /**
+   * Send movement command to AppSync with array of currently pressed keys
+   */
+  const sendMovementCommand = async (keys: string[]) => {
+    if (!isPlayerSpawned || keys.length === 0) {
+      return;
+    }
+
+    try {
+      const moveEvent = {
+        action: 'MOVE_PLAYER',
+        user: username,
+        message: JSON.stringify({ keys }),
+        timestamp: new Date().toISOString()
+      };
+
+      // Publish move event using publishRaw
+      await (chatClient as any).publishRaw(moveEvent);
+      
+      console.log('Sent MOVE_PLAYER event:', keys);
+    } catch (error) {
+      console.error('Failed to send movement command:', error);
+    }
+  };
+
+  /**
+   * Animation frame loop to send keyboard state
+   */
+  const sendKeyboardState = () => {
+    if (!isPlayerSpawned || !isVideoFocused) {
+      return;
+    }
+
+    const now = Date.now();
+    const timeSinceLastMessage = now - lastMessageSentRef.current;
+    
+    // Throttle to stay under AppSync's 25 requests/sec limit
+    if (timeSinceLastMessage < messageRateLimit) {
+      // Continue the loop without sending
+      animationFrameRef.current = requestAnimationFrame(sendKeyboardState);
+      return;
+    }
+
+    const currentKeys = Array.from(pressedKeysRef.current).sort();
+    
+    // Debounce spacebar to prevent spam (only send every 100ms)
+    // BUT always send on initial press (spacebarJustPressedRef)
+    const hasSpacebar = currentKeys.includes(' ');
+    const timeSinceLastSpace = now - lastSpacebarSentRef.current;
+    
+    let keysToSend = currentKeys;
+    
+    if (hasSpacebar) {
+      // Always send if just pressed, otherwise debounce
+      if (spacebarJustPressedRef.current || timeSinceLastSpace >= 100) {
+        lastSpacebarSentRef.current = now;
+        spacebarJustPressedRef.current = false;
+      } else {
+        // Remove spacebar from keys to send if it was sent recently
+        keysToSend = currentKeys.filter(key => key !== ' ');
+      }
+    }
+    
+    // Send current key state (throttled to 20/sec)
+    if (keysToSend.length > 0) {
+      sendMovementCommand(keysToSend);
+      lastMessageSentRef.current = now;
+    }
+
+    // Continue the loop
+    animationFrameRef.current = requestAnimationFrame(sendKeyboardState);
+  };
+
+  /**
+   * Handle keyboard input for remote player control
+   */
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    // Only process if player is spawned and video is focused
+    if (!isPlayerSpawned || !isVideoFocused) {
+      return;
+    }
+
+    const key = event.key;
+    
+    // Check if it's a supported key
+    const supportedKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '];
+    
+    if (supportedKeys.includes(key)) {
+      event.preventDefault(); // Prevent default browser behavior
+      
+      // Add key to pressed keys set
+      if (!pressedKeysRef.current.has(key)) {
+        pressedKeysRef.current.add(key);
+        
+        // Mark spacebar as just pressed to ensure it's sent immediately
+        if (key === ' ') {
+          spacebarJustPressedRef.current = true;
+        }
+        
+        // Reset inactivity timer on key press
+        resetInactivityTimer();
+      }
+    }
+  };
+
+  /**
+   * Handle key release
+   */
+  const handleKeyUp = (event: React.KeyboardEvent) => {
+    const key = event.key;
+    const supportedKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '];
+    
+    if (supportedKeys.includes(key)) {
+      event.preventDefault();
+      pressedKeysRef.current.delete(key);
     }
   };
 
@@ -335,7 +612,23 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
         <div className="view-content">
           {/* Gameplay Area (Area 1) */}
           <div className="gameplay-area">
-            <div className="gameplay-video-container video-container" id="ViewerGameplayContainer">
+            <div 
+              className="gameplay-video-container video-container" 
+              id="ViewerGameplayContainer"
+              ref={gameplayContainerRef}
+              tabIndex={0}
+              onKeyDown={handleKeyDown}
+              onKeyUp={handleKeyUp}
+              onFocus={() => setIsVideoFocused(true)}
+              onBlur={() => setIsVideoFocused(false)}
+              onClick={() => {
+                // TODO: Re-enable stream requirement after testing
+                // if (isConnected && gameplayStream && !isPlayerSpawned) {
+                if (!isPlayerSpawned) {
+                  spawnRemotePlayer();
+                }
+              }}
+            >
               {/* Top Right Controls Container */}
               <div className="top-right-controls">
                 {/* Broadcast Status Indicator */}
@@ -346,11 +639,22 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
                   </div>
                 )}
 
+                {/* Remote Player Status */}
+                {isPlayerSpawned && (
+                  <div className="broadcast-status" style={{ marginLeft: '8px' }}>
+                    <div className={`status-dot ${isVideoFocused ? '' : 'inactive'}`}></div>
+                    <span>{isVideoFocused ? 'Controls Active' : 'Click to control'}</span>
+                  </div>
+                )}
+
                 {/* Expand Sidebar Button (shown when sidebar is collapsed) */}
                 {isSidebarCollapsed && (
                   <button
                     className="expand-sidebar-btn"
-                    onClick={() => setIsSidebarCollapsed(false)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsSidebarCollapsed(false);
+                    }}
                     title="Show chat"
                   >
                     <i className="bi bi-chat-left-text"></i>
@@ -414,6 +718,20 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
                   </button>
                   <p className="play-button-text">Click to watch stream</p>
                 </div>
+              )}
+
+              {/* Spawn Player Button - small transparent button in top left */}
+              {!isPlayerSpawned && (
+                <button 
+                  className="spawn-player-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    spawnRemotePlayer();
+                  }}
+                  title="Spawn remote player (arrow keys + space to control)"
+                >
+                  <i className="bi bi-controller"></i>
+                </button>
               )}
 
               {/* Loading Overlay */}
