@@ -36,13 +36,15 @@ export class IVSStageManager {
    * @param username - Unique username for the participant
    * @param capabilities - Array of capabilities (PUBLISH or SUBSCRIBE)
    * @param streamSource - Optional stream source attribute (gameplay, player_webcam, or participant_webcam)
+   * @param supportsCouchCoop - Optional boolean indicating if the game supports couch co-op
    * @returns Promise resolving to the participant token string
    * @throws Error if token fetch fails with user-friendly message
    */
   async fetchParticipantToken(
     username: string,
     capabilities: ('PUBLISH' | 'SUBSCRIBE')[],
-    streamSource?: 'gameplay' | 'player_webcam' | 'participant_webcam'
+    streamSource?: 'gameplay' | 'player_webcam' | 'participant_webcam',
+    supportsCouchCoop?: boolean
   ): Promise<string> {
     try {
       const restOperation = post({
@@ -58,7 +60,8 @@ export class IVSStageManager {
             capabilities,
             attributes: {
               username,
-              ...(streamSource && { stream_source: streamSource })
+              ...(streamSource && { stream_source: streamSource }),
+              ...(supportsCouchCoop !== undefined && { supports_couch_coop: supportsCouchCoop.toString() })
             }
           }
         }

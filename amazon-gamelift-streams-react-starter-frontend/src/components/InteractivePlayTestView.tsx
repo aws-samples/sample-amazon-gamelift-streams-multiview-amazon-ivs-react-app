@@ -594,10 +594,12 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       if (GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.supportsDirectBroadcast) {
         console.log('Generating IVS publish token for GameLift instance...');
         try {
+          const gameConfig = GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame];
           gameLiftPublishToken = await participantStageManagerRef.current.fetchParticipantToken(
             `${username}-gamelift`,
             ['PUBLISH'],
-            'gameplay'
+            'gameplay',
+            gameConfig?.supportsCouchCoop
           );
           console.log('Successfully generated IVS publish token for GameLift instance:', gameLiftPublishToken ? 'Token received' : 'Token is null');
         } catch (tokenError) {
@@ -1263,10 +1265,12 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       console.log('Connecting to IVS stage as participant...');
 
       // Request participant token with PUBLISH+SUBSCRIBE capabilities
+      const gameConfig = GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame];
       const participantToken = await participantStageManagerRef.current.fetchParticipantToken(
         username,
         ['PUBLISH', 'SUBSCRIBE'],
-        'participant_webcam'
+        'participant_webcam',
+        gameConfig?.supportsCouchCoop
       );
 
       console.log('Participant token received');
@@ -1288,7 +1292,8 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
         const subscribeOnlyToken = await participantStageManagerRef.current.fetchParticipantToken(
           username,
           ['SUBSCRIBE'],
-          'participant_webcam'
+          'participant_webcam',
+          gameConfig?.supportsCouchCoop
         );
 
         // Create stage without local streams

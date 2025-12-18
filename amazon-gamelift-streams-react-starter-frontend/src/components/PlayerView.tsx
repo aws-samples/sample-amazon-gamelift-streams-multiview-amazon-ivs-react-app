@@ -482,10 +482,12 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
       
       let participantToken: string;
       try {
+        const gameConfig = GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame];
         participantToken = await gameplayStageManagerRef.current.fetchParticipantToken(
           username,
           ['SUBSCRIBE'],  // Use SUBSCRIBE to listen for GameLift instance's broadcast
-          STREAM_SOURCE.GAMEPLAY as 'gameplay'
+          STREAM_SOURCE.GAMEPLAY as 'gameplay',
+          gameConfig?.supportsCouchCoop
         );
         console.log('Successfully generated IVS stage token for monitoring');
       } catch (tokenError) {
@@ -550,10 +552,12 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
       console.log('Generating IVS publish token for GameLift instance...');
       let gameLiftPublishToken: string;
       try {
+        const gameConfig = GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame];
         gameLiftPublishToken = await gameplayStageManagerRef.current.fetchParticipantToken(
           `${username}-gamelift`,
           ['PUBLISH'],
-          STREAM_SOURCE.GAMEPLAY as 'gameplay'
+          STREAM_SOURCE.GAMEPLAY as 'gameplay',
+          gameConfig?.supportsCouchCoop
         );
         console.log('Successfully generated IVS publish token for GameLift instance');
       } catch (tokenError) {
@@ -888,10 +892,12 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
 
     try {
       // Fetch participant token with gameplay stream_source attribute
+      const gameConfig = GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame];
       const participantToken = await gameplayStageManagerRef.current.fetchParticipantToken(
         username,
         ['PUBLISH'],
-        STREAM_SOURCE.GAMEPLAY as 'gameplay'
+        STREAM_SOURCE.GAMEPLAY as 'gameplay',
+        gameConfig?.supportsCouchCoop
       );
 
       // Capture GameLift video/audio using cross-browser compatible method

@@ -39,11 +39,13 @@ export const GAMELIFT_STREAMS_CONFIG = {
       applicationId: 'a-XXXXXXXXXXXXX', // Your GameLift Streams Application ID
       streamGroupId: 'sg-XXXXXXXXXXXXX', // Your GameLift Streams Stream Group ID
       supportsDirectBroadcast: true, // Whether this game supports GameLift-IVS Direct Broadcast
+      supportsCouchCoop: true, // Whether this game supports couch co-op control for viewers
     },
     "Another Game": {
       applicationId: 'a-YYYYYYYYYYYYY', // Another GameLift Streams Application ID
       streamGroupId: 'sg-YYYYYYYYYYYYY', // Another GameLift Streams Stream Group ID
       supportsDirectBroadcast: false, // This game doesn't support direct broadcast (Player View only)
+      supportsCouchCoop: false, // This game doesn't support couch co-op
     }
   },
   defaultRegion: 'us-west-2' // Your preferred AWS region
@@ -63,6 +65,10 @@ export const IVS_WHIP_ENDPOINT = 'https://global.whip.live-video.net';
 // Set to true to enable the GameLift-IVS Direct Broadcast feature
 // This feature allows GameLift instances to broadcast directly to IVS without browser intermediation
 export const ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST = false;
+
+// Set to true to enable couch co-op control for supported games
+// This feature allows viewers to spawn and control players in games that support it
+export const ENABLE_REMOTE_PLAYER_CONTROL = false;
 
 // Color Scheme (Inspired by Game Screenshots)
 // These values can remain as-is or be customized to match your branding

@@ -12,7 +12,7 @@ import { IVSStageManager } from '../utils/IVSStageManager';
 import { ChatComponent } from './ChatComponent';
 import { VolumeControl } from './VolumeControl';
 import { generateUsername } from '../utils/usernameGenerator';
-import { APPSYNC_CONFIG } from '../utils/constants';
+import { APPSYNC_CONFIG, ENABLE_REMOTE_PLAYER_CONTROL } from '../utils/constants';
 import { RemoteStageStream } from '../types/ivs.types';
 import './Views.css';
 
@@ -37,10 +37,11 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
-  // Remote Player Control State
+  // Couch Co-op Control State
   const [isPlayerSpawned, setIsPlayerSpawned] = useState(false);
   const isPlayerSpawnedRef = useRef(false); // Ref to track spawn state for closures
   const [isVideoFocused, setIsVideoFocused] = useState(false);
+  const [gameSupportsCouch, setGameSupportsCouch] = useState(false);
 
   // Refs
   const gameplayVideoRef = useRef<HTMLVideoElement>(null);
@@ -141,9 +142,9 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
   };
 
   /**
-   * Spawn remote player in the game
+   * Spawn couch co-op player in the game
    */
-  const spawnRemotePlayer = async () => {
+  const spawnCouchCoopPlayer = async () => {
     if (isPlayerSpawned) {
       console.log('Player already spawned');
       return;
@@ -173,15 +174,15 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
         gameplayContainerRef.current.focus();
       }
     } catch (error) {
-      console.error('Failed to spawn remote player:', error);
+      console.error('Failed to spawn couch co-op player:', error);
       setErrors(prev => [...prev, `Failed to spawn player: ${error instanceof Error ? error.message : 'Unknown error'}`]);
     }
   };
 
   /**
-   * Despawn remote player in the game
+   * Despawn couch co-op player in the game
    */
-  const despawnRemotePlayer = async () => {
+  const despawnCouchCoopPlayer = async () => {
     // Use ref instead of state to avoid closure issues
     if (!isPlayerSpawnedRef.current) {
       console.log('Despawn called but player not spawned (ref check)');
@@ -215,7 +216,7 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
         inactivityTimerRef.current = null;
       }
     } catch (error) {
-      console.error('Failed to despawn remote player:', error);
+      console.error('Failed to despawn couch co-op player:', error);
       console.error('Error details:', error);
     }
   };
@@ -232,7 +233,7 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
     // Start new timer
     inactivityTimerRef.current = setTimeout(() => {
       console.log('Player inactive for', inactivityTimeout / 1000, 'seconds - despawning');
-      despawnRemotePlayer();
+      despawnCouchCoopPlayer();
     }, inactivityTimeout);
   };
 
@@ -446,6 +447,11 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
       if (streamSource === 'gameplay') {
         setGameplayStream(stream);
         
+        // Check if the game supports couch co-op
+        const supportsCouch = participantInfo?.attributes?.supports_couch_coop === 'true';
+        setGameSupportsCouch(supportsCouch);
+        console.log('Game supports couch co-op:', supportsCouch);
+        
         // Get or create MediaStream for gameplay video element
         if (gameplayVideoRef.current) {
           let existingMediaStream = gameplayVideoRef.current.srcObject as MediaStream;
@@ -621,13 +627,6 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
               onKeyUp={handleKeyUp}
               onFocus={() => setIsVideoFocused(true)}
               onBlur={() => setIsVideoFocused(false)}
-              onClick={() => {
-                // TODO: Re-enable stream requirement after testing
-                // if (isConnected && gameplayStream && !isPlayerSpawned) {
-                if (!isPlayerSpawned) {
-                  spawnRemotePlayer();
-                }
-              }}
             >
               {/* Top Right Controls Container */}
               <div className="top-right-controls">
@@ -639,12 +638,12 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
                   </div>
                 )}
 
-                {/* Remote Player Status */}
-                {isPlayerSpawned && (
+                {/* Couch Co-op Status */}
+                {ENABLE_REMOTE_PLAYER_CONTROL && gameSupportsCouch && isPlayerSpawned && (
                   <div className="broadcast-status" style={{ marginLeft: '8px' }}>
                     <div className={`status-dot ${isVideoFocused ? '' : 'inactive'}`}></div>
                     <span>{isVideoFocused ? 'Controls Active' : 'Click to control'}</span>
-                  </div>
+  </div>
                 )}
 
                 {/* Expand Sidebar Button (shown when sidebar is collapsed) */}
@@ -720,15 +719,15 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
                 </div>
               )}
 
-              {/* Spawn Player Button - small transparent button in top left */}
-              {!isPlayerSpawned && (
+              {/* Spawn Couch Co-op Player Button - small transparent button in top left */}
+              {ENABLE_REMOTE_PLAYER_CONTROL && gameSupportsCouch && !isPlayerSpawned && (
                 <button 
                   className="spawn-player-btn"
                   onClick={(e) => {
                     e.stopPropagation();
-                    spawnRemotePlayer();
+                    spawnCouchCoopPlayer();
                   }}
-                  title="Spawn remote player (arrow keys + space to control)"
+                  title="Join couch co-op (arrow keys + space to control)"
                 >
                   <i className="bi bi-controller"></i>
                 </button>
