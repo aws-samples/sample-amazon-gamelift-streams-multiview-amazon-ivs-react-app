@@ -14,7 +14,7 @@ The application is built with [ReactJS](https://react.dev/), an API built with [
 
 **Want to enable direct broadcasting from GameLift to IVS?** See [GAMELIFT_IVS_DIRECT_BROADCAST.md](./GAMELIFT_IVS_DIRECT_BROADCAST.md) for a guide on the GameLift-IVS Direct Broadcast feature, which allows GameLift instances to stream directly to IVS Real-Time Stages without browser intermediation, reducing latency by 50-75% and improving stream quality.
 
-**Want to enable remote player control for viewers?** See [REMOTE_PLAYER_CONTROL.md](./REMOTE_PLAYER_CONTROL.md) for a guide on the Remote Player Control feature, which allows viewers to spawn and control players directly in the game using keyboard commands sent via AppSync. This feature includes configurable rate limiting (20 RPS by default) and could be enhanced with alternative pub/sub solutions for higher throughput.
+**Want to enable couch co-op control for viewers?** See [COUCH_COOP_CONTROL.md](./COUCH_COOP_CONTROL.md) for a guide on the Couch Co-op Control feature, which allows viewers to spawn and control couch co-op players directly in supported games using keyboard commands sent via AppSync. This feature includes configurable rate limiting (20 RPS by default) and could be enhanced with alternative pub/sub solutions for higher throughput.
 
 ## Application Features
 
