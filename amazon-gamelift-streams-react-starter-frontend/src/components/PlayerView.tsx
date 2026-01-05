@@ -114,6 +114,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isNavCollapsed, setIsNavCollapsed] = useState(true);
 
   // Direct Broadcast Configuration State
   const [broadcastConfig, setBroadcastConfig] = useState({
@@ -1140,27 +1141,41 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
     <>
       <div className="view-container">
         {/* Header */}
-        <div className="view-header">
-          <div>
-            <h2>Amazon GameLift Streams + IVS (Player View)</h2>
-            <span className="username">@{username}</span>
-          </div>
-          <div className="button-group">
+        <nav className="navbar navbar-expand-lg navbar-dark view-header">
+          <div className="container-fluid">
+            <div className="navbar-brand">
+              <h2 className="mb-0">Amazon GameLift Streams + IVS (Player View)</h2>
+              <span className="username">@{username}</span>
+            </div>
             <button 
-              className="settings-button" 
-              onClick={() => navigate('/interactive-playtest')}
-              title="Switch to Interactive Play Test mode"
+              className="navbar-toggler border-0" 
+              type="button" 
+              onClick={() => setIsNavCollapsed(!isNavCollapsed)}
+              aria-controls="navbarNav" 
+              aria-expanded={!isNavCollapsed} 
+              aria-label="Toggle navigation"
             >
-              <i className="bi bi-people"></i> Interactive Play Test
+              <span className="navbar-toggler-icon"></span>
             </button>
-            <button className="settings-button" onClick={() => setShowSettingsModal(true)}>
-              <i className="bi bi-gear"></i> Settings
-            </button>
-            <button className="settings-button" onClick={signOut}>
-              Sign Out
-            </button>
+            <div className={`collapse navbar-collapse ${!isNavCollapsed ? 'show' : ''}`} id="navbarNav">
+              <div className="navbar-nav ms-auto">
+                <button 
+                  className="settings-button" 
+                  onClick={() => navigate('/interactive-playtest')}
+                  title="Switch to Interactive Play Test mode"
+                >
+                  <i className="bi bi-people"></i> Interactive Play Test
+                </button>
+                <button className="settings-button" onClick={() => setShowSettingsModal(true)}>
+                  <i className="bi bi-gear"></i> Settings
+                </button>
+                <button className="settings-button" onClick={signOut}>
+                  Sign Out
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        </nav>
 
         {/* Error Messages */}
         {errors.length > 0 && (

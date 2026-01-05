@@ -36,6 +36,7 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   
   // Couch Co-op Control State
   const [isPlayerSpawned, setIsPlayerSpawned] = useState(false);
@@ -57,10 +58,13 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
   const lastMessageSentRef = useRef<number>(0);
   const messageRateLimit = 1000 / 20; // 20 messages per second (leaving buffer below 25/sec limit)
   
+  // Gamepad state tracking
+  const gamepadIndexRef = useRef<number | null>(null);
+  
   // Inactivity tracking
   const lastActivityRef = useRef<number>(Date.now());
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const inactivityTimeout = 5000; // 5 seconds (configurable)
+  const inactivityTimeout = 5000 * 10000; // 5 seconds (configurable)
 
   // Chat Client
   const [chatClient] = useState(() => new AppSyncChatClient(APPSYNC_CONFIG));
@@ -91,6 +95,29 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Detect gamepad connection
+  useEffect(() => {
+    const handleGamepadConnected = (e: GamepadEvent) => {
+      console.log('Gamepad connected:', e.gamepad.id);
+      gamepadIndexRef.current = e.gamepad.index;
+    };
+
+    const handleGamepadDisconnected = (e: GamepadEvent) => {
+      console.log('Gamepad disconnected');
+      if (gamepadIndexRef.current === e.gamepad.index) {
+        gamepadIndexRef.current = null;
+      }
+    };
+
+    window.addEventListener('gamepadconnected', handleGamepadConnected);
+    window.addEventListener('gamepaddisconnected', handleGamepadDisconnected);
+
+    return () => {
+      window.removeEventListener('gamepadconnected', handleGamepadConnected);
+      window.removeEventListener('gamepaddisconnected', handleGamepadDisconnected);
+    };
   }, []);
 
   // Start/stop keyboard state sending based on player spawn and focus
@@ -145,10 +172,10 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
    * Spawn couch co-op player in the game
    */
   const spawnCouchCoopPlayer = async () => {
-    if (isPlayerSpawned) {
-      console.log('Player already spawned');
-      return;
-    }
+    // if (isPlayerSpawned) {
+    //   console.log('Player already spawned');
+    //   return;
+    // }
 
     try {
       const spawnEvent = {
@@ -290,6 +317,43 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
       return;
     }
 
+    // Poll gamepad state
+    const gamepads = navigator.getGamepads();
+    if (gamepadIndexRef.current !== null) {
+      const gamepad = gamepads[gamepadIndexRef.current];
+      
+      if (gamepad) {
+        // Read left stick with deadzone
+        const leftStickX = Math.abs(gamepad.axes[0]) > 0.15 ? gamepad.axes[0] : 0;
+        const leftStickY = Math.abs(gamepad.axes[1]) > 0.15 ? gamepad.axes[1] : 0;
+
+        // Convert stick to key presses
+        if (leftStickX < -0.5) pressedKeysRef.current.add('ArrowLeft');
+        else pressedKeysRef.current.delete('ArrowLeft');
+
+        if (leftStickX > 0.5) pressedKeysRef.current.add('ArrowRight');
+        else pressedKeysRef.current.delete('ArrowRight');
+
+        if (leftStickY < -0.5) pressedKeysRef.current.add('ArrowUp');
+        else pressedKeysRef.current.delete('ArrowUp');
+
+        if (leftStickY > 0.5) pressedKeysRef.current.add('ArrowDown');
+        else pressedKeysRef.current.delete('ArrowDown');
+
+        // Read buttons
+        if (gamepad.buttons[0]?.pressed) pressedKeysRef.current.add(' '); // A button = Fire
+        else pressedKeysRef.current.delete(' ');
+
+        if (gamepad.buttons[2]?.pressed) pressedKeysRef.current.add('k'); // X button = Shield
+        else pressedKeysRef.current.delete('k');
+
+        // Reset inactivity on any input
+        if (leftStickX !== 0 || leftStickY !== 0 || gamepad.buttons[0]?.pressed || gamepad.buttons[2]?.pressed) {
+          resetInactivityTimer();
+        }
+      }
+    }
+
     const currentKeys = Array.from(pressedKeysRef.current).sort();
     
     // Debounce spacebar to prevent spam (only send every 100ms)
@@ -301,7 +365,7 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
     
     if (hasSpacebar) {
       // Always send if just pressed, otherwise debounce
-      if (spacebarJustPressedRef.current || timeSinceLastSpace >= 100) {
+      if (spacebarJustPressedRef.current || timeSinceLastSpace >= 250) {
         lastSpacebarSentRef.current = now;
         spacebarJustPressedRef.current = false;
       } else {
@@ -332,7 +396,7 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
     const key = event.key;
     
     // Check if it's a supported key
-    const supportedKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '];
+    const supportedKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'k', 'w', 'a', 's', 'd'];
     
     if (supportedKeys.includes(key)) {
       event.preventDefault(); // Prevent default browser behavior
@@ -357,7 +421,7 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
    */
   const handleKeyUp = (event: React.KeyboardEvent) => {
     const key = event.key;
-    const supportedKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '];
+    const supportedKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'k', 'w', 'a', 's', 'd'];
     
     if (supportedKeys.includes(key)) {
       event.preventDefault();
@@ -566,24 +630,38 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
     <>
       <div className="view-container">
         {/* Header */}
-        <div className="view-header">
-          <div>
-            <h2>Amazon GameLift Streams + IVS (Viewer)</h2>
-            <span className="username">@{username}</span>
-          </div>
-          <div className="button-group">
+        <nav className="navbar navbar-expand-lg navbar-dark view-header">
+          <div className="container-fluid">
+            <div className="navbar-brand">
+              <h2 className="mb-0">Amazon GameLift Streams + IVS (Viewer)</h2>
+              <span className="username">@{username}</span>
+            </div>
             <button 
-              className="sign-out-button" 
-              onClick={() => navigate('/interactive-playtest')}
-              title="Switch to Interactive Play Test mode"
+              className="navbar-toggler border-0" 
+              type="button" 
+              onClick={() => setIsNavCollapsed(!isNavCollapsed)}
+              aria-controls="navbarNav" 
+              aria-expanded={!isNavCollapsed} 
+              aria-label="Toggle navigation"
             >
-              <i className="bi bi-people"></i> Interactive Play Test
+              <span className="navbar-toggler-icon"></span>
             </button>
-            <button className="sign-out-button" onClick={signOut}>
-              Sign Out
-            </button>
+            <div className={`collapse navbar-collapse ${!isNavCollapsed ? 'show' : ''}`} id="navbarNav">
+              <div className="navbar-nav ms-auto">
+                <button 
+                  className="sign-out-button" 
+                  onClick={() => navigate('/interactive-playtest')}
+                  title="Switch to Interactive Play Test mode"
+                >
+                  <i className="bi bi-people"></i> Interactive Play Test
+                </button>
+                <button className="sign-out-button" onClick={signOut}>
+                  Sign Out
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        </nav>
 
         {/* Error Messages */}
         {errors.length > 0 && (
@@ -642,8 +720,8 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
                 {ENABLE_REMOTE_PLAYER_CONTROL && gameSupportsCouch && isPlayerSpawned && (
                   <div className="broadcast-status" style={{ marginLeft: '8px' }}>
                     <div className={`status-dot ${isVideoFocused ? '' : 'inactive'}`}></div>
-                    <span>{isVideoFocused ? 'Controls Active' : 'Click to control'}</span>
-  </div>
+                    <span>{isVideoFocused ? 'Controls Active' : 'Click to control'}{gamepadIndexRef.current !== null && ' 🎮'}</span>
+                  </div>
                 )}
 
                 {/* Expand Sidebar Button (shown when sidebar is collapsed) */}
@@ -720,7 +798,8 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
               )}
 
               {/* Spawn Couch Co-op Player Button - small transparent button in top left */}
-              {ENABLE_REMOTE_PLAYER_CONTROL && gameSupportsCouch && !isPlayerSpawned && (
+              {/* ENABLE_REMOTE_PLAYER_CONTROL && gameSupportsCouch && !isPlayerSpawned */}
+              {true && (
                 <button 
                   className="spawn-player-btn"
                   onClick={(e) => {

@@ -158,6 +158,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   const [showInputIndicator, setShowInputIndicator] = useState(true);
   const [ivsGameplayVideoElement, setIvsGameplayVideoElement] = useState<HTMLVideoElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isNavCollapsed, setIsNavCollapsed] = useState(true);
 
   // Refs
   const gameLiftVideoRef = useRef<HTMLVideoElement>(null);
@@ -2391,49 +2392,63 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       </div>
 
       {/* Header */}
-      <header className="playtester-header" role="banner">
-        <div>
-          <h2>Interactive Play Testing</h2>
-          <div className="header-username-container">
-            <span className="username" aria-label={`Logged in as ${username}, role: ${userRole}`}>
-              @{username}
-            </span>
-            <span className="role-badge">
-              ({userRole})
-            </span>
-            {selectedGame && (
-              <span className="game-badge" title={`Selected game: ${selectedGame}`}>
-                {selectedGame}
+      <nav className="navbar navbar-expand-lg navbar-dark playtester-header" role="banner">
+        <div className="container-fluid">
+          <div className="navbar-brand">
+            <h2 className="mb-0">Interactive Play Testing</h2>
+            <div className="header-username-container">
+              <span className="username" aria-label={`Logged in as ${username}, role: ${userRole}`}>
+                @{username}
               </span>
-            )}
+              <span className="role-badge">
+                ({userRole})
+              </span>
+              {selectedGame && (
+                <span className="game-badge" title={`Selected game: ${selectedGame}`}>
+                  {selectedGame}
+                </span>
+              )}
+            </div>
+          </div>
+          <button 
+            className="navbar-toggler border-0" 
+            type="button" 
+            onClick={() => setIsNavCollapsed(!isNavCollapsed)}
+            aria-controls="navbarNav" 
+            aria-expanded={!isNavCollapsed} 
+            aria-label="Toggle navigation"
+          >
+            <span className="navbar-toggler-icon"></span>
+          </button>
+          <div className={`collapse navbar-collapse ${!isNavCollapsed ? 'show' : ''}`} id="navbarNav">
+            <div className="navbar-nav ms-auto" role="navigation" aria-label="Main navigation">
+              <button 
+                className="control-button" 
+                onClick={() => navigate('/')}
+                aria-label="Go back to home page"
+              >
+                <i className="bi bi-arrow-left" aria-hidden="true"></i> Back
+              </button>
+              {userRole === 'player' && (
+                <button 
+                  className="control-button" 
+                  onClick={openSettingsModal}
+                  aria-label="Open settings"
+                >
+                  <i className="bi bi-gear" aria-hidden="true"></i> Settings
+                </button>
+              )}
+              <button 
+                className="control-button" 
+                onClick={signOut}
+                aria-label="Sign out"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
-        <nav className="button-group" role="navigation" aria-label="Main navigation">
-          <button 
-            className="control-button" 
-            onClick={() => navigate('/')}
-            aria-label="Go back to home page"
-          >
-            <i className="bi bi-arrow-left" aria-hidden="true"></i> Back
-          </button>
-          {userRole === 'player' && (
-            <button 
-              className="control-button" 
-              onClick={openSettingsModal}
-              aria-label="Open settings"
-            >
-              <i className="bi bi-gear" aria-hidden="true"></i> Settings
-            </button>
-          )}
-          <button 
-            className="control-button" 
-            onClick={signOut}
-            aria-label="Sign out"
-          >
-            Sign Out
-          </button>
-        </nav>
-      </header>
+      </nav>
 
       {/* Error Messages */}
       {/* Implements task 28: Add ARIA labels to status indicators */}

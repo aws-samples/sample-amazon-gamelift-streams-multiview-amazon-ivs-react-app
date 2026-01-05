@@ -12,8 +12,6 @@ The application is built with [ReactJS](https://react.dev/), an API built with [
 
 **Want to integrate viewer interactions directly into your game?** See [GAME_INTEGRATION.md](./GAME_INTEGRATION.md) for a guide on connecting your game client to AWS AppSync to enable real-time viewer chat and reactions that affect gameplay.
 
-**Want to enable direct broadcasting from GameLift to IVS?** See [GAMELIFT_IVS_DIRECT_BROADCAST.md](./GAMELIFT_IVS_DIRECT_BROADCAST.md) for a guide on the GameLift-IVS Direct Broadcast feature, which allows GameLift instances to stream directly to IVS Real-Time Stages without browser intermediation, reducing latency by 50-75% and improving stream quality.
-
 **Want to enable couch co-op control for viewers?** See [COUCH_COOP_CONTROL.md](./COUCH_COOP_CONTROL.md) for a guide on the Couch Co-op Control feature, which allows viewers to spawn and control couch co-op players directly in supported games using keyboard commands sent via AppSync. This feature includes configurable rate limiting (20 RPS by default) and could be enhanced with alternative pub/sub solutions for higher throughput.
 
 ## Application Features
@@ -32,7 +30,11 @@ All views include real-time chat and reaction features powered by AWS AppSync Ev
 
 This project uses the AWS Cloud Development Kit (CDK) to deploy the AWS Infrastructure. You can learn more about CDK [here](https://aws.amazon.com/cdk/). The CDK stacks included deploy the required resources for a fully functioning demo web page, but do not deploy the Amazon GameLift Streams resources themselves. You can add Amazon GameLift Streams application and stream group resources at any time, before or after the deployment of this sample. There is additional information about creating Amazon GameLift Streams resources below in the `Creating a GameLift Stream Application and Stream Group` section.
 
-![](images/amazon-gamelift-streams-multiview-amazon-ivs-reference-architecture.png)
+![gls-ivs-architecture](images/amazon-gamelift-streams-multiview-amazon-ivs-reference-architecture.png)
+
+**Want to enable direct broadcasting from GameLift to IVS?** See [GAMELIFT_IVS_DIRECT_BROADCAST.md](./GAMELIFT_IVS_DIRECT_BROADCAST.md) for a guide on the GameLift-IVS Direct Broadcast feature, which allows GameLift instances to stream directly to IVS Real-Time Stages without browser intermediation, reducing latency and improving stream quality.
+
+![gls-ivs-integration-direct-broadcast](images/Amazon-GameLift-Streams-Direct-Broadcast-reference-architecture.png)
 
 The Application is deployed through 3 CDK stacks:
 

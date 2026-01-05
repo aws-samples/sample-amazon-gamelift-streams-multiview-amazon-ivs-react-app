@@ -888,3 +888,84 @@
 .spawn-player-btn i {
   font-size: 18px;
 }
+
+/* ========================================
+   Responsive Navbar Styling
+   ======================================== */
+
+/* Dark navbar toggler icon */
+.navbar-dark .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.85%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Keep original button styling when navbar is expanded (desktop) */
+@media (min-width: 992px) {
+  .navbar-nav {
+    gap: 0.5rem;
+  }
+
+  .navbar-nav .settings-button,
+  .navbar-nav .sign-out-button,
+  .navbar-nav .control-button {
+    background: rgba(15, 52, 96, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(78, 205, 196, 0.3);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .navbar-nav .settings-button:hover,
+  .navbar-nav .sign-out-button:hover,
+  .navbar-nav .control-button:hover {
+    background: rgba(26, 77, 122, 0.9);
+    border-color: rgba(78, 205, 196, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    color: white;
+  }
+}
+
+/* Link styling when navbar is collapsed (mobile) */
+@media (max-width: 991px) {
+  .navbar-collapse {
+    background: rgba(15, 23, 41, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .navbar-nav .settings-button,
+  .navbar-nav .sign-out-button,
+  .navbar-nav .control-button {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.85);
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: none;
+    text-decoration: none;
+    display: block;
+    width: 100%;
+    text-align: left;
+  }
+
+  .navbar-nav .settings-button:hover,
+  .navbar-nav .sign-out-button:hover,
+  .navbar-nav .control-button:hover {
+    background: rgba(78, 205, 196, 0.15);
+    color: #4ecdc4;
+    transform: none;
+    box-shadow: none;
+  }
+}
