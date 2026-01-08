@@ -4,7 +4,7 @@ The Amazon GameLift Streams Multiview with Amazon IVS React Starter sample repos
 
 This demo deploys a comprehensive streaming platform with dual-role functionality:
 
--   **Player Role**: Stream GameLift gameplay and webcam to viewers via Amazon IVS Real-Time Stages, with optional Twitch broadcasting
+-   **Player Role**: Stream GameLift gameplay and webcam to viewers via Amazon IVS Real-Time Stages
 -   **Viewer Role**: Watch live streams, participate in real-time chat, and send reactions
 -   **Real-Time Features**: Chat messaging, emoji reactions, and real-time video streaming powered by Amazon IVS and AWS AppSync
 
@@ -16,13 +16,11 @@ The application is built with [ReactJS](https://react.dev/), an API built with [
 
 ## Application Features
 
-This sample demonstrates five distinct user experiences:
+This sample demonstrates three distinct user experiences:
 
-1. **Player View** (`player@ivs.rocks`): Stream GameLift gameplay and webcam to IVS Real-Time Stage, interact with viewers through chat, send reactions, and optionally broadcast to Twitch
+1. **Player View** (`player@ivs.rocks`): Stream GameLift gameplay and webcam to IVS Real-Time Stage, interact with viewers through chat, and send reactions
 2. **Viewer View** (`viewer@ivs.rocks`): Watch live gameplay and webcam streams from the player, participate in real-time chat, and send reactions
-3. **Twitch Broadcast View** (optional): Dedicated interface for broadcasting GameLift gameplay directly to Twitch using IVS Web Broadcast SDK with webcam overlay support
-4. **Play Tester View** (`player@ivs.rocks`): Stream GameLift gameplay while seeing and hearing multiple feedback providers in real-time, enabling interactive play testing sessions with bidirectional video/audio communication
-5. **Play Test Feedback Provider View** (`viewer@ivs.rocks`): Join play testing sessions with webcam and microphone to provide real-time feedback while watching gameplay
+3. **Interactive Play Testing**: Unified interface enabling real-time play testing sessions where multiple participants can join with webcam and microphone to provide feedback while watching gameplay, with dynamic control transfer allowing participants to request and assume gameplay control
 
 All views include real-time chat and reaction features powered by AWS AppSync Event API, with automatic reconnection handling and message queuing for reliability.
 
@@ -30,11 +28,17 @@ All views include real-time chat and reaction features powered by AWS AppSync Ev
 
 This project uses the AWS Cloud Development Kit (CDK) to deploy the AWS Infrastructure. You can learn more about CDK [here](https://aws.amazon.com/cdk/). The CDK stacks included deploy the required resources for a fully functioning demo web page, but do not deploy the Amazon GameLift Streams resources themselves. You can add Amazon GameLift Streams application and stream group resources at any time, before or after the deployment of this sample. There is additional information about creating Amazon GameLift Streams resources below in the `Creating a GameLift Stream Application and Stream Group` section.
 
-![gls-ivs-architecture](images/amazon-gamelift-streams-multiview-amazon-ivs-reference-architecture.png)
+Amazon IVS Broadcasting of GameLift Streams play can be accomplished via either direct broadcasting or the Amazon IVS Web Broadcast SDK (restreaming from the player's browser). See [GAMELIFT_IVS_DIRECT_BROADCAST.md](./GAMELIFT_IVS_DIRECT_BROADCAST.md) for a guide on the GameLift-IVS Direct Broadcast feature.
 
-**Want to enable direct broadcasting from GameLift to IVS?** See [GAMELIFT_IVS_DIRECT_BROADCAST.md](./GAMELIFT_IVS_DIRECT_BROADCAST.md) for a guide on the GameLift-IVS Direct Broadcast feature, which allows GameLift instances to stream directly to IVS Real-Time Stages without browser intermediation, reducing latency and improving stream quality.
+### Direct Broadcast Architecture
 
 ![gls-ivs-integration-direct-broadcast](images/Amazon-GameLift-Streams-Direct-Broadcast-reference-architecture.png)
+
+### Web Broadcast Architecture
+
+![gls-ivs-architecture](images/amazon-gamelift-streams-multiview-amazon-ivs-reference-architecture.png)
+
+### Deploying
 
 The Application is deployed through 3 CDK stacks:
 
@@ -69,14 +73,16 @@ You can use `aws configure` via aws-cli or other mechanism to authenticate your 
 
 ### Important: Region Requirements
 
-Amazon GameLift Streams is only supported in specific AWS regions. **The API and IVS stacks must be deployed to a valid GameLift Streams primary region** because the Lambda functions use the AWS SDK GameLift Streams client, which makes API calls in the region where the Lambda is deployed.
+> [!IMPORTANT]  
+> Amazon GameLift Streams is only supported in specific AWS regions. **The API and IVS stacks must be deployed to a valid GameLift Streams primary region** because the Lambda functions use the AWS SDK GameLift Streams client, which makes API calls in the region where the Lambda is deployed.
 
 It is important to understand the difference between Amazon GameLift Streams `Primary locations` and `Remote locations`:
 
 -   **Primary location**: The region where you create your initial Amazon GameLift Streams resources and deploy this application's infrastructure
 -   **Remote locations**: Additional regions where you can extend coverage to host your application and stream sessions globally
 
-**Make sure to set your aws-cli default region to one of the supported Amazon GameLift Streams primary regions before deploying the stacks.** You can find additional information about supported primary regions and remote regions [here](https://docs.aws.amazon.com/gameliftstreams/latest/developerguide/regions-quotas-rande.html).
+> [!IMPORTANT]  
+> **Make sure to set your aws-cli default region to one of the supported Amazon GameLift Streams primary regions before deploying the stacks.** You can find additional information about supported primary regions and remote regions [here](https://docs.aws.amazon.com/gameliftstreams/latest/developerguide/regions-quotas-rande.html).
 
 ### Deployment
 
@@ -116,7 +122,7 @@ It is important to understand the difference between Amazon GameLift Streams `Pr
 12. Once everything is deployed, you can visit your deployed frontend via the Amazon CloudFront distribution, or while developing on localhost by running `npm start` within the `/amazon-gamelift-streams-react-starter-frontend` directory.
 13. You will need Amazon Cognito users to authenticate into the frontend web page. Create two users in the deployed userpool in the Cognito AWS Console:
 
-    - `player@ivs.rocks` - For the player role (can stream gameplay and webcam, broadcast to Twitch)
+    - `player@ivs.rocks` - For the player role (can stream gameplay and webcam)
     - `viewer@ivs.rocks` - For the viewer role (can watch streams, participate in chat, send reactions)
 
     When creating your Cognito users in the AWS console, you can select `Mark email address as verified`, to avoid needing to send yourself a verification code when signing into the web frontend the first time.
@@ -145,17 +151,6 @@ Sign in with `viewer@ivs.rocks` to access the viewer interface (automatically ro
 -   Participate in real-time chat
 -   Send reactions that appear as floating animations
 
-### Twitch Broadcast View (Optional)
-
-Navigate to `/twitch-broadcast` while signed in as `player@ivs.rocks` to access the Twitch broadcasting interface. This view allows:
-
--   Streaming GameLift gameplay directly to Twitch
--   Adding webcam overlay to the Twitch stream
--   Including microphone audio in the broadcast
--   Real-time chat integration
-
-**Note:** The Twitch Broadcast View requires a valid Twitch stream key, which can be obtained from your Twitch Creator Dashboard.
-
 ### Interactive Play Testing (Unified View)
 
 The application includes a unified view for conducting interactive play testing sessions with real-time bidirectional communication. This view enables game developers to gather immediate feedback during gameplay sessions, with multiple participants joining simultaneously to create a virtual focus group environment for play testing.
@@ -172,7 +167,8 @@ The application includes a unified view for conducting interactive play testing 
 -   Dynamic control transfer between participants
 -   Automatic fallback to view-only mode if media permissions are denied
 
-**Important:** The Interactive Play Testing view only supports games configured with `supportsDirectBroadcast: true` in the `gameLibrary`. This ensures optimal performance using the GameLift-IVS Direct Broadcast feature for reduced latency and improved stream quality.
+> [!IMPORTANT]  
+> The Interactive Play Testing view only supports games configured with `supportsDirectBroadcast: true` in the `gameLibrary`. This ensures optimal performance using the GameLift-IVS Direct Broadcast feature for reduced latency and improved stream quality.
 
 ### Using the Interactive Play Testing View
 
@@ -272,8 +268,7 @@ The Interactive Play Testing view features automatic IVS broadcasting to ensure 
 
 -   When any participant starts a GameLift session, gameplay automatically broadcasts to IVS
 -   When a control request is approved, the new controller's gameplay automatically broadcasts
--   No manual "Broadcast to IVS" button is required
--   All participants continuously see the current controller's gameplay
+-   All non-player participants continuously see the current controller's gameplay
 -   Webcam feeds remain visible throughout all transitions
 
 This automatic broadcasting eliminates manual intervention and ensures that control transitions are smooth and immediate for all session participants.
@@ -484,7 +479,6 @@ The application uses a modern serverless architecture to deliver real-time strea
 3. **IVS Broadcasting**: Gameplay and webcam feeds are broadcast via IVS Real-Time Stage
 4. **Real-Time Communication**: Chat and reactions flow through AppSync Event API
 5. **Viewer Experience**: Viewers receive real-time streams and participate in real-time chat
-6. **Optional Twitch**: Players can simultaneously broadcast to Twitch using IVS Web Broadcast SDK
 
 ### Security Model
 
