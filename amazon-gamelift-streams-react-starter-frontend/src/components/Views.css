@@ -142,6 +142,7 @@
 }
 
 .sidebar.collapsed {
+  display: none;
   transform: translateX(100%);
   position: absolute;
   right: 0;

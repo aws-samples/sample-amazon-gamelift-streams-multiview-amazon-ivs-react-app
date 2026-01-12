@@ -798,8 +798,7 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
               )}
 
               {/* Spawn Couch Co-op Player Button - small transparent button in top left */}
-              {/* ENABLE_REMOTE_PLAYER_CONTROL && gameSupportsCouch && !isPlayerSpawned */}
-              {true && (
+              {ENABLE_REMOTE_PLAYER_CONTROL && gameSupportsCouch && !isPlayerSpawned && (
                 <button 
                   className="spawn-player-btn"
                   onClick={(e) => {
