@@ -210,10 +210,32 @@ export class IVSStageManager {
     });
 
     // Listen for general errors
-    if (config.onError) {
-      // Note: IVS SDK doesn't have a general error event, but we can catch errors in other handlers
-      // Errors will be propagated through the onError callback when they occur
-    }
+    stage.on(StageEvents.ERROR, (error: any) => {
+      console.log('=== StageEvents.ERROR triggered ===');
+      console.error('Stage error event:', error);
+      console.log('Error code:', error.code);
+      console.log('Error category:', error.category);
+      console.log('Error message:', error.message);
+
+      if (config.onError) {
+        config.onError(error);
+      }
+    });
+
+    // Listen for publish state changes (to catch publication failures)
+    stage.on(StageEvents.STAGE_PARTICIPANT_PUBLISH_STATE_CHANGED, (participant: StageParticipantInfo, state: any) => {
+      console.log('Publish state changed:', {
+        userId: participant.userId,
+        isLocal: participant.isLocal,
+        state
+      });
+
+      // Check if this is the local participant and if publish errored
+      if (participant.isLocal && state === 'ERRORED') {
+        console.warn('Local participant publish state is ERRORED');
+        // This will be accompanied by a StageEvents.ERROR event with more details
+      }
+    });
   }
 
   /**
@@ -277,6 +299,8 @@ export class IVSStageManager {
     try {
       await this.stage.join();
     } catch (error) {
+      console.log('------------');
+      console.log(error);
       if (error instanceof Error) {
         // Provide user-friendly error messages
         if (error.message.includes('token')) {
@@ -285,8 +309,11 @@ export class IVSStageManager {
           throw new Error('Network connection failed. Please check your internet and try again.');
         } else if (error.message.includes('permission')) {
           throw new Error('Camera or microphone permission denied. Please allow access and try again.');
-        } else if (error.message.includes('limit') || error.message.includes('capacity')) {
-          throw new Error('Streaming capacity reached. Please try again later.');
+        } else if (error.message.includes('limit') || error.message.includes('capacity') || error.message.includes('Stage at capacity')) {
+          // Preserve the original error for capacity issues so it can be caught specifically
+          const capacityError = new Error('Stage at capacity. Maximum 12 participants allowed.');
+          capacityError.name = 'StageClientError';
+          throw capacityError;
         } else {
           throw new Error(`Unable to connect to stream: ${error.message}`);
         }

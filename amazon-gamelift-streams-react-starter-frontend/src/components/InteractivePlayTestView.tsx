@@ -95,6 +95,8 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   const [localWebcamStream, setLocalWebcamStream] = useState<MediaStream | null>(null);
   const [isCameraEnabled, setIsCameraEnabled] = useState(true);
   const [isMicEnabled, setIsMicEnabled] = useState(true);
+  const [isSubscribeOnlyMode, setIsSubscribeOnlyMode] = useState(false);
+  const [canRetryPublish, setCanRetryPublish] = useState(false);
 
   // Game Selection and Configuration State
   const [selectedGame, setSelectedGame] = useState(() => {
@@ -172,6 +174,8 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   const takeoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingTakeoverApprovalRef = useRef<boolean>(false);
+  const capacityErrorHandlerRef = useRef<((error: Error) => void) | null>(null);
+  const isSubscribeOnlyModeRef = useRef<boolean>(false);
   const networkHandlersRef = useRef<{
     handleOnline: (() => void) | null;
     handleOffline: (() => void) | null;
@@ -1257,6 +1261,85 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   };
 
   /**
+   * Handle stage capacity error by switching to subscribe-only mode
+   */
+  const handleStageCapacityError = async (localStream: MediaStream | null) => {
+    console.warn('Handling stage capacity error, switching to subscribe-only mode');
+    
+    try {
+      // Stop local media tracks since we won't be publishing
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      setLocalWebcamStream(null);
+      
+      // Remove local video element
+      if (webcamVideoRef.current) {
+        webcamVideoRef.current.srcObject = null;
+      }
+      
+      // Cancel any automatic reconnection attempts
+      participantStageManagerRef.current.cancelReconnect();
+      
+      // Leave the current stage
+      await participantStageManagerRef.current.leaveStage();
+      
+      // Wait a moment for cleanup to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Get subscribe-only token
+      const gameConfig = GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame];
+      const subscribeOnlyToken = await participantStageManagerRef.current.fetchParticipantToken(
+        username,
+        ['SUBSCRIBE'],
+        'participant_webcam',
+        gameConfig?.supportsCouchCoop
+      );
+      
+      // Create stage without local streams
+      await participantStageManagerRef.current.createStage({
+        participantToken: subscribeOnlyToken,
+        streams: [],
+        onConnectionStateChange: (state: StageConnectionState) => {
+          console.log('Participant stage connection state:', state);
+          if (state === StageConnectionState.CONNECTED) {
+            setErrors(prev => prev.filter(e => !e.includes('Connection lost')));
+          } else if (state === StageConnectionState.DISCONNECTED) {
+            setErrors(prev => [...prev, 'Connection lost. Attempting to reconnect...']);
+          }
+        },
+        onStreamsAdded: handleStreamsAdded,
+        onParticipantLeft: handleParticipantLeft,
+        onError: (error: Error) => {
+          console.error('Participant stage error:', error);
+          handleIVSBroadcastError(error, 'webcam');
+        }
+      });
+      
+      // Join in subscribe-only mode
+      await participantStageManagerRef.current.joinStage();
+      
+      // Update state
+      setIsSubscribeOnlyMode(true);
+      isSubscribeOnlyModeRef.current = true;
+      setIsWebcamBroadcasting(false);
+      
+      // Add error message
+      const message = 'Stage is at capacity (12 participants max). You can view but not broadcast. You\'ll be able to enable your camera when someone leaves.';
+      setErrors(prev => {
+        // Avoid duplicate messages
+        if (prev.includes(message)) return prev;
+        return [...prev, message];
+      });
+      
+      console.log('Successfully joined stage in subscribe-only mode due to capacity');
+    } catch (error) {
+      console.error('Failed to switch to subscribe-only mode:', error);
+      setErrors(prev => [...prev, 'Failed to connect to stage. Please refresh the page.']);
+    }
+  };
+
+  /**
    * Connect to IVS stage for all participants
    * Implements task 5: IVS stage connection for all participants
    * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5
@@ -1331,6 +1414,26 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       // Create LocalStageStream instances from media tracks
       const localStreams = participantStageManagerRef.current.createLocalStreams(localMediaStream);
 
+      // Set up capacity error handler before creating stage
+      capacityErrorHandlerRef.current = (error: any) => {
+        console.log('=== Capacity error handler called ===');
+        console.log('Error code:', error.code);
+        console.log('Error category:', error.category);
+        console.log('Error message:', error.message);
+        
+        // Check for STAGE_AT_CAPACITY error code (6) or PUBLISH_ERROR category
+        if (error.code === 6 || error.message?.includes('Stage at capacity') || error.category === 'PUBLISH_ERROR') {
+          console.log('Stage at capacity error detected, triggering handler');
+          // Use setTimeout to break out of the callback context
+          setTimeout(() => {
+            handleStageCapacityError(localMediaStream);
+          }, 0);
+        } else {
+          console.log('Not a capacity error, calling handleIVSBroadcastError');
+          handleIVSBroadcastError(error, 'webcam');
+        }
+      };
+
       // Create and join IVS stage with local streams
       await participantStageManagerRef.current.createStage({
         participantToken,
@@ -1356,15 +1459,20 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
         onStreamsAdded: handleStreamsAdded,
         onParticipantLeft: handleParticipantLeft,
         onError: (error: Error) => {
+          console.log('=== onError callback triggered ===');
           console.error('Participant stage error:', error);
-          // Requirement 16.2: Handle IVS stage errors
-          handleIVSBroadcastError(error, 'webcam');
+          
+          // Call the capacity error handler
+          if (capacityErrorHandlerRef.current) {
+            capacityErrorHandlerRef.current(error);
+          } else {
+            console.log('No capacity error handler set!');
+          }
         }
       });
 
       // Join the stage
       await participantStageManagerRef.current.joinStage();
-
       console.log('Successfully connected to IVS stage as participant');
     } catch (error) {
       console.error('Failed to connect to IVS stage:', error);
@@ -1470,6 +1578,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
     const streamSource = participantInfo?.attributes?.stream_source;
     
     console.log('Participant left:', userId, 'stream_source:', streamSource);
+    console.log('Current state - isSubscribeOnlyMode:', isSubscribeOnlyMode, 'isSubscribeOnlyModeRef:', isSubscribeOnlyModeRef.current, 'canRetryPublish:', canRetryPublish);
 
     // Remove participant from the map if they had participant_webcam streams
     if (streamSource === 'participant_webcam' && userId) {
@@ -1483,6 +1592,23 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
         
         return updated;
       });
+      
+      // If we're in subscribe-only mode due to capacity, allow retry
+      // Use ref to avoid stale closure
+      if (isSubscribeOnlyModeRef.current) {
+        console.log('Participant left - enabling retry to join with publish permissions');
+        setCanRetryPublish(true);
+        
+        // Add success message (not error) - use a special prefix to style it differently
+        const message = 'SUCCESS: A participant left. You can now enable your camera and microphone.';
+        setErrors(prev => {
+          // Avoid duplicate messages
+          if (prev.includes(message)) return prev;
+          return [...prev, message];
+        });
+      } else {
+        console.log('Not in subscribe-only mode, skipping retry enable');
+      }
     }
   };
 
@@ -1941,6 +2067,148 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   };
 
 
+
+  /**
+   * Retry joining stage with publish permissions after capacity opens up
+   */
+  const retryJoinWithPublish = async () => {
+    if (!isSubscribeOnlyMode || !canRetryPublish) {
+      console.log('Cannot retry - not in subscribe-only mode or retry not available');
+      return;
+    }
+
+    try {
+      console.log('Retrying to join stage with publish permissions...');
+      setCanRetryPublish(false);
+
+      // Request webcam and microphone permissions
+      let localMediaStream: MediaStream | null = null;
+      try {
+        localMediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        console.log('Media permissions granted for retry');
+      } catch (mediaError) {
+        console.warn('Media permissions denied on retry:', mediaError);
+        setErrors(prev => [...prev, 'Camera and microphone access denied. Please allow permissions to broadcast.']);
+        setCanRetryPublish(true);
+        return;
+      }
+
+      // Leave the current subscribe-only stage
+      await participantStageManagerRef.current.leaveStage();
+
+      // Get new token with publish permissions
+      const gameConfig = GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame];
+      const participantToken = await participantStageManagerRef.current.fetchParticipantToken(
+        username,
+        ['PUBLISH', 'SUBSCRIBE'],
+        'participant_webcam',
+        gameConfig?.supportsCouchCoop
+      );
+
+      // Store local webcam stream
+      setLocalWebcamStream(localMediaStream);
+
+      // Create LocalStageStream instances from media tracks
+      const localStreams = participantStageManagerRef.current.createLocalStreams(localMediaStream);
+
+      // Set up capacity error handler for retry
+      capacityErrorHandlerRef.current = (error: any) => {
+        console.log('=== Capacity error handler called (retry) ===');
+        console.log('Error code:', error.code);
+        console.log('Error category:', error.category);
+        console.log('Error message:', error.message);
+        
+        // Check for STAGE_AT_CAPACITY error code (6) or PUBLISH_ERROR category
+        if (error.code === 6 || error.message?.includes('Stage at capacity') || error.category === 'PUBLISH_ERROR') {
+          console.log('Capacity error detected during retry, triggering handler');
+          // Use setTimeout to break out of the callback context
+          setTimeout(() => {
+            handleStageCapacityError(localMediaStream);
+            setCanRetryPublish(true);
+            setErrors(prev => [...prev, 'Stage is still at capacity. Please try again when someone leaves.']);
+          }, 0);
+        } else {
+          handleIVSBroadcastError(error, 'webcam');
+        }
+      };
+
+      // Create and join IVS stage with local streams
+      await participantStageManagerRef.current.createStage({
+        participantToken,
+        streams: localStreams,
+        onConnectionStateChange: (state: StageConnectionState) => {
+          console.log('Participant stage connection state:', state);
+          if (state === StageConnectionState.CONNECTED) {
+            setIsWebcamBroadcasting(true);
+            
+            // Attach local stream to video element for preview
+            if (webcamVideoRef.current && localMediaStream) {
+              webcamVideoRef.current.srcObject = localMediaStream;
+            }
+            
+            // Clear connection lost errors
+            setErrors(prev => prev.filter(e => !e.includes('Connection lost')));
+          } else if (state === StageConnectionState.DISCONNECTED) {
+            setIsWebcamBroadcasting(false);
+            setErrors(prev => [...prev, 'Connection lost. Attempting to reconnect...']);
+          }
+        },
+        onStreamsAdded: handleStreamsAdded,
+        onParticipantLeft: handleParticipantLeft,
+        onError: (error: Error) => {
+          console.error('Participant stage error during retry:', error);
+          
+          // Call the capacity error handler
+          if (capacityErrorHandlerRef.current) {
+            capacityErrorHandlerRef.current(error);
+          }
+        }
+      });
+
+      // Join the stage
+      await participantStageManagerRef.current.joinStage();
+      
+      // Success - clear subscribe-only mode
+      setIsSubscribeOnlyMode(false);
+      isSubscribeOnlyModeRef.current = false;
+      setIsWebcamBroadcasting(true);
+      
+      // Add success message
+      const successMessage = 'SUCCESS: Successfully enabled camera and microphone!';
+      setErrors(prev => {
+        // Remove any "participant left" messages and add success message
+        const filtered = prev.filter(e => !e.includes('participant left'));
+        if (filtered.includes(successMessage)) return filtered;
+        return [...filtered, successMessage];
+      });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setErrors(prev => prev.filter(e => !e.includes('Successfully enabled')));
+      }, 3000);
+      
+      console.log('Successfully rejoined stage with publish permissions');
+    } catch (error) {
+      console.error('Failed to retry joining with publish permissions:', error);
+      let errorMessage = 'Failed to enable camera and microphone.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('token')) {
+          errorMessage = 'Failed to get stage token. Please refresh the page and try again.';
+        } else if (error.message.includes('network') || error.message.includes('timeout')) {
+          errorMessage = 'Network error. Please check your internet connection.';
+        } else {
+          errorMessage = `Failed to enable camera: ${error.message}`;
+        }
+      }
+      
+      setErrors(prev => [...prev, errorMessage]);
+      setCanRetryPublish(true);
+    }
+  };
 
   /**
    * Toggle camera on/off
@@ -2453,19 +2721,41 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       {/* Error Messages */}
       {/* Implements task 28: Add ARIA labels to status indicators */}
       {errors.length > 0 && (
-        <div role="alert" aria-live="assertive">
-          {errors.slice(-3).map((error, index) => (
-            <div key={index} className="error-banner">
-              <span>{error}</span>
-              <button
-                onClick={() => setErrors(prev => prev.filter((_, i) => i !== prev.length - 3 + index))}
-                aria-label="Dismiss error message"
-                className="error-dismiss-inline"
+        <div role="alert" aria-live="assertive" style={{ marginTop: '1rem' }}>
+          {errors.slice(-3).map((error, sliceIndex) => {
+            const isSuccess = error.startsWith('SUCCESS:');
+            const displayMessage = isSuccess ? error.replace('SUCCESS: ', '') : error;
+            
+            return (
+              <div 
+                key={`${error}-${sliceIndex}`}
+                className={isSuccess ? "success-banner" : "error-banner"}
+                style={{ marginBottom: '0.5rem' }}
               >
-                ×
-              </button>
-            </div>
-          ))}
+                <span>{displayMessage}</span>
+                <button
+                  onClick={() => {
+                    console.log('Close button clicked for message:', error);
+                    setErrors(prev => {
+                      // Find and remove this specific error message
+                      const indexToRemove = prev.lastIndexOf(error);
+                      if (indexToRemove !== -1) {
+                        const newErrors = [...prev.slice(0, indexToRemove), ...prev.slice(indexToRemove + 1)];
+                        console.log('Removed message at index:', indexToRemove);
+                        console.log('New errors array length:', newErrors.length);
+                        return newErrors;
+                      }
+                      return prev;
+                    });
+                  }}
+                  aria-label="Dismiss message"
+                  className="error-dismiss-inline"
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -2656,7 +2946,27 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
               aria-label="Your webcam video"
             />
 
+            {/* Show retry button when in subscribe-only mode due to capacity */}
+            {isSubscribeOnlyMode && canRetryPublish && (
+              <div className="offline-message" role="status">
+                <p>Stage at capacity</p>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={retryJoinWithPublish}
+                  aria-label="Enable camera and microphone"
+                >
+                  Enable Camera
+                </button>
+              </div>
+            )}
 
+            {/* Show message when in subscribe-only mode but can't retry yet */}
+            {isSubscribeOnlyMode && !canRetryPublish && (
+              <div className="offline-message" role="status">
+                <p>Stage at capacity</p>
+                <p className="text-muted small">Waiting for space...</p>
+              </div>
+            )}
 
             {isWebcamBroadcasting && (
               <div className="media-controls" role="toolbar" aria-label="Media controls">
