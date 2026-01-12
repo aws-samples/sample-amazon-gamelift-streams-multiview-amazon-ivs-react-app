@@ -717,7 +717,7 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
                 )}
 
                 {/* Couch Co-op Status */}
-                {ENABLE_REMOTE_PLAYER_CONTROL && gameSupportsCouch && isPlayerSpawned && (
+                {ENABLE_REMOTE_PLAYER_CONTROL && gameSupportsCouch && (
                   <div className="broadcast-status" style={{ marginLeft: '8px' }}>
                     <div className={`status-dot ${isVideoFocused ? '' : 'inactive'}`}></div>
                     <span>{isVideoFocused ? 'Controls Active' : 'Click to control'}{gamepadIndexRef.current !== null && ' 🎮'}</span>
