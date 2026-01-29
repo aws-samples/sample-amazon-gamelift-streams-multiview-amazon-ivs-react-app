@@ -32,7 +32,10 @@ exports.handler = async function (event, context) {
       }
     }
 
-    const gameLiftStreams = new GameLiftStreams();
+    // Use the first region from the Regions array to configure the client
+    // This ensures the API call goes to the correct regional endpoint
+    const targetRegion = body.Regions && body.Regions.length > 0 ? body.Regions[0] : undefined;
+    const gameLiftStreams = new GameLiftStreams({ region: targetRegion });
 
     // Build the request parameters
     const requestParams = {
