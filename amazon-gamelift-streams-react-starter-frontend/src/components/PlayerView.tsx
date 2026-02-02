@@ -125,7 +125,8 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
     videoBitrate: 4000,
     enableAudio: true,
     audioBitrate: 128000,
-    debugPipeline: false
+    debugPipeline: false,
+    debugLevel: 0
   });
   
   // Reconnection State
@@ -591,7 +592,8 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
           VIDEO_BITRATE: broadcastConfig.videoBitrate.toString(),
           ENABLE_AUDIO: broadcastConfig.enableAudio.toString(),
           AUDIO_BITRATE: broadcastConfig.audioBitrate.toString(),
-          DEBUG_PIPELINE: broadcastConfig.debugPipeline.toString()
+          DEBUG_PIPELINE: broadcastConfig.debugPipeline.toString(),
+          GST_DEBUG: broadcastConfig.debugLevel.toString()
         }
       };
 

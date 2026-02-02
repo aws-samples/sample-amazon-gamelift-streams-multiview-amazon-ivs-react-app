@@ -38,6 +38,7 @@ interface SettingsModalProps {
     enableAudio: boolean;
     audioBitrate: number;
     debugPipeline: boolean;
+    debugLevel: number;
   };
   
   // Event Handlers
@@ -111,7 +112,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     <>
       <div className="modal-backdrop show"></div>
       <div className="modal show d-block" tabIndex={-1}>
-        <div className="modal-dialog modal-lg">
+        <div className="modal-dialog modal-lg modal-fullscreen-lg-down">
           <div className="modal-content modal-content-custom">
             <div className="modal-header">
               <h5 className="modal-title">Player Settings</h5>
@@ -293,7 +294,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   {/* Encoder Options */}
                   {/* <h6 className="mb-3">Encoder Options</h6> */}
                   <div className="row g-3 mb-4">
-                    <div className="col-md-6">
+                    <div className="col-md-4">
                       <label htmlFor="encoderType" className="form-label">Encoder Type</label>
                       <select
                         className="form-select"
@@ -306,6 +307,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </select>
                       <small className="form-text form-text-muted">
                         GPU encoding provides better performance
+                      </small>
+                    </div>
+                    <div className="col-md-2">
+                      <label htmlFor="debugLevel" className="form-label">Debug Level</label>
+                      <select
+                        className="form-select"
+                        id="debugLevel"
+                        value={broadcastConfig.debugLevel}
+                        onChange={(e) => setBroadcastConfig({...broadcastConfig, debugLevel: parseInt(e.target.value)})}
+                      >
+                        <option value="0">0 (None)</option>
+                        <option value="1">1 (Error)</option>
+                        <option value="2">2 (Warning)</option>
+                        <option value="3">3 (Fixme)</option>
+                        <option value="4">4 (Info)</option>
+                        <option value="5">5 (Debug)</option>
+                      </select>
+                      <small className="form-text form-text-muted">
+                        GStreamer debug level
                       </small>
                     </div>
                     <div className="col-md-3">
@@ -405,21 +425,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="d-flex flex-column gap-2 w-100">
                 {/* Info alerts - placed outside button rows for proper spacing */}
                 {!showOnlyDirectBroadcastGames && GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.supportsDirectBroadcast && (
-                  <div className="alert alert-info modal-footer-alert mb-2" role="status">
-                    <i className="bi bi-info-circle me-2"></i>
-                    <strong>Direct Broadcast Game</strong>
+                  <div className="alert alert-info modal-footer-alert mb-2 d-none d-xl-block" role="status">
                     <p className="mb-0 mt-1">
-                      This game supports direct broadcast from the GameLift server. Manual broadcast controls are disabled.
+                      <i className="bi bi-info-circle me-2"></i>Manual game broadcast controls are disabled for direct broadcast games.
                     </p>
                   </div>
                 )}
                 
                 {!showOnlyDirectBroadcastGames && !GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.supportsDirectBroadcast && (
-                  <div className="alert alert-warning modal-footer-alert mb-2" role="status">
-                    <i className="bi bi-exclamation-triangle me-2"></i>
-                    <strong>Manual Broadcast Mode</strong>
+                  <div className="alert alert-warning modal-footer-alert mb-2 d-none d-xl-block" role="status">
                     <p className="mb-0 mt-1">
-                      This game requires manual broadcast setup. Start the game first, then use the broadcast buttons below.
+                      <i className="bi bi-exclamation-triangle me-2"></i>This game requires manual broadcast setup. Use the broadcast buttons below.
                     </p>
                   </div>
                 )}

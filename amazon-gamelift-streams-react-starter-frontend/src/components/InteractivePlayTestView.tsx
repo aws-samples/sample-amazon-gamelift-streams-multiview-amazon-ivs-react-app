@@ -136,6 +136,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
     enableAudio: true,
     audioBitrate: 128000,
     debugPipeline: false,
+    debugLevel: 0
   });
 
   // Settings Modal State
@@ -646,7 +647,8 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
             VIDEO_BITRATE: broadcastConfig.videoBitrate.toString(),
             ENABLE_AUDIO: broadcastConfig.enableAudio.toString(),
             AUDIO_BITRATE: broadcastConfig.audioBitrate.toString(),
-            DEBUG_PIPELINE: broadcastConfig.debugPipeline.toString()
+            DEBUG_PIPELINE: broadcastConfig.debugPipeline.toString(),
+            GST_DEBUG: broadcastConfig.debugLevel.toString()
           }
         })
       };
