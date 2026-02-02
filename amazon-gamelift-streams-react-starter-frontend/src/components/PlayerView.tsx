@@ -122,7 +122,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
     videoWidth: 1280,
     videoHeight: 720,
     videoFramerate: 30,
-    videoBitrate: 4000,
+    videoBitrate: 6000,
     enableAudio: true,
     audioBitrate: 128000,
     debugPipeline: false,
