@@ -17,7 +17,7 @@ import { ChatComponent } from './ChatComponent';
 import { VolumeControl } from './VolumeControl';
 import { SettingsModal } from './SettingsModal';
 import { generateUsername } from '../utils/usernameGenerator';
-import { APPSYNC_CONFIG, STREAM_SOURCE, GAMELIFT_STREAMS_CONFIG, IVS_WHIP_ENDPOINT, ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST } from '../utils/constants';
+import { APPSYNC_CONFIG, STREAM_SOURCE, GAMELIFT_STREAMS_CONFIG, IVS_WHIP_ENDPOINT, RTMP_ENDPOINT, STREAM_KEY, ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST } from '../utils/constants';
 import './Views.css';
 import './PlayerView.css';
 
@@ -118,6 +118,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
 
   // Direct Broadcast Configuration State
   const [broadcastConfig, setBroadcastConfig] = useState({
+    ingestType: 'whip', // 'whip' or 'rtmp'
     encoderType: 'gpu',
     videoWidth: 1280,
     videoHeight: 720,
@@ -126,7 +127,9 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
     enableAudio: true,
     audioBitrate: 128000,
     debugPipeline: false,
-    debugLevel: 0
+    debugLevel: 0,
+    streamKey: STREAM_KEY,
+    rtmpEndpoint: RTMP_ENDPOINT
   });
   
   // Reconnection State
@@ -577,24 +580,37 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
       // Create payload with IVS credentials as environment variables
       // Requirements: 4.1, 4.2, 4.3
       console.log('Creating GameLift stream session with IVS environment variables...');
+      
+      // Build environment variables based on ingest type
+      const envVars: Record<string, string> = {
+        ENCODER_TYPE: broadcastConfig.encoderType,
+        VIDEO_WIDTH: broadcastConfig.videoWidth.toString(),
+        VIDEO_HEIGHT: broadcastConfig.videoHeight.toString(),
+        VIDEO_FRAMERATE: broadcastConfig.videoFramerate.toString(),
+        VIDEO_BITRATE: broadcastConfig.videoBitrate.toString(),
+        ENABLE_AUDIO: broadcastConfig.enableAudio.toString(),
+        AUDIO_BITRATE: broadcastConfig.audioBitrate.toString(),
+        DEBUG_PIPELINE: broadcastConfig.debugPipeline.toString(),
+        GST_DEBUG: broadcastConfig.debugLevel.toString()
+      };
+
+      // Add ingest-specific variables
+      if (broadcastConfig.ingestType === 'rtmp') {
+        envVars.RTMP_ENDPOINT = broadcastConfig.rtmpEndpoint;
+        envVars.STREAM_KEY = broadcastConfig.streamKey;
+        envVars.INGEST_TYPE = 'rtmp';
+      } else {
+        envVars.IVS_WHIP_ENDPOINT = IVS_WHIP_ENDPOINT;
+        envVars.IVS_STAGE_TOKEN = gameLiftPublishToken;
+        envVars.INGEST_TYPE = 'whip';
+      }
+
       const payload = {
         AppIdentifier: appId,
         SGIdentifier: sgId,
         SignalRequest: signalRequest ?? '',
         Regions: regions,
-        AdditionalEnvironmentVariables: {
-          IVS_WHIP_ENDPOINT: IVS_WHIP_ENDPOINT,
-          IVS_STAGE_TOKEN: gameLiftPublishToken,
-          ENCODER_TYPE: broadcastConfig.encoderType,
-          VIDEO_WIDTH: broadcastConfig.videoWidth.toString(),
-          VIDEO_HEIGHT: broadcastConfig.videoHeight.toString(),
-          VIDEO_FRAMERATE: broadcastConfig.videoFramerate.toString(),
-          VIDEO_BITRATE: broadcastConfig.videoBitrate.toString(),
-          ENABLE_AUDIO: broadcastConfig.enableAudio.toString(),
-          AUDIO_BITRATE: broadcastConfig.audioBitrate.toString(),
-          DEBUG_PIPELINE: broadcastConfig.debugPipeline.toString(),
-          GST_DEBUG: broadcastConfig.debugLevel.toString()
-        }
+        AdditionalEnvironmentVariables: envVars
       };
 
       // Call StartStream Lambda with enhanced payload

@@ -24,11 +24,11 @@ GameLift Instance → IVS Stage → Viewers
 
 ### Key Benefits
 
--   **Lower Viewer Latency**: Eliminates browser capture and re-encoding overhead
--   **Better Quality**: Native streaming from GameLift instance preserves original quality
--   **Reduced Player CPU Usage**: Browser no longer needs to capture and re-encode video
--   **Simplified Architecture**: Direct connection between GameLift and IVS
--   **One-Click Setup**: Single button starts both GameLift stream and IVS broadcast
+- **Lower Viewer Latency**: Eliminates browser capture and re-encoding overhead
+- **Better Quality**: Native streaming from GameLift instance preserves original quality
+- **Reduced Player CPU Usage**: Browser no longer needs to capture and re-encode video
+- **Simplified Architecture**: Direct connection between GameLift and IVS
+- **One-Click Setup**: Single button starts both GameLift stream and IVS broadcast
 
 ## Architecture
 
@@ -112,8 +112,14 @@ export const ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST = false;
 The feature uses the following constants (already configured if you followed the main setup):
 
 ```typescript
-// IVS WHIP Endpoint for direct broadcast
+// IVS WHIP Endpoint for direct broadcast (WebRTC)
 export const IVS_WHIP_ENDPOINT = 'https://global.whip.live-video.net';
+
+// RTMP Endpoint for direct broadcast (alternative to WHIP)
+export const RTMP_ENDPOINT = 'rtmp://your-rtmp-endpoint.example.com/live';
+
+// Stream Key for RTMP ingest
+export const STREAM_KEY = 'your-stream-key-here';
 
 // IVS Stage Configuration
 export const IVS_CONFIG = {
@@ -126,6 +132,33 @@ export const STREAM_SOURCE = {
     PLAYER_WEBCAM: 'player_webcam',
 } as const;
 ```
+
+### Ingest Type Configuration
+
+The direct broadcast feature supports two ingest protocols:
+
+**WHIP Ingest (Default - WebRTC-based):**
+
+- Uses the IVS Real-Time Stage WHIP endpoint
+- Provides ultra-low latency streaming
+- Requires `IVS_WHIP_ENDPOINT` and `IVS_STAGE_TOKEN` (generated dynamically)
+- Best for interactive use cases
+
+**RTMP Ingest (Traditional streaming):**
+
+- Uses standard RTMP protocol
+- Compatible with traditional streaming workflows
+- Requires `RTMP_ENDPOINT` and `STREAM_KEY` to be configured in constants
+- Best for compatibility with existing RTMP infrastructure
+
+To configure RTMP ingest:
+
+1. Open `amazon-gamelift-streams-react-starter-frontend/src/utils/constants.ts`
+2. Set `RTMP_ENDPOINT` to your RTMP ingest endpoint (e.g., from IVS Channel)
+3. Set `STREAM_KEY` to your stream key (keep this secret!)
+4. In the Direct Broadcast Config tab, select "RTMP Ingest" from the dropdown
+5. The RTMP endpoint and stream key fields will be pre-populated from constants
+6. You can override these values in the UI if needed for testing
 
 ## Lambda Function Updates
 
@@ -142,8 +175,14 @@ interface StartStreamRequest {
     SignalRequest: string;
     Regions: string[];
     AdditionalEnvironmentVariables?: {
-        IVS_WHIP_ENDPOINT: string;
-        IVS_STAGE_TOKEN: string;
+        INGEST_TYPE: string; // 'whip' or 'rtmp'
+        // WHIP-specific (when INGEST_TYPE === 'whip')
+        IVS_WHIP_ENDPOINT?: string;
+        IVS_STAGE_TOKEN?: string;
+        // RTMP-specific (when INGEST_TYPE === 'rtmp')
+        RTMP_ENDPOINT?: string;
+        STREAM_KEY?: string;
+        // Common encoder settings
         ENCODER_TYPE: string;
         VIDEO_WIDTH: string;
         VIDEO_HEIGHT: string;
@@ -183,6 +222,33 @@ const streamSession = await gameLiftStreams.startStreamSession({
 
 ## User Interface
 
+### Direct Broadcast Config Tab
+
+When the feature flag is enabled and a game supports direct broadcast, a "Direct Broadcast Config" tab appears in the settings modal with the following options:
+
+**Ingest Type Selection:**
+
+- **WHIP Ingest (WebRTC)** - Default option, uses IVS Real-Time Stage for ultra-low latency
+- **RTMP Ingest** - Traditional RTMP streaming protocol for compatibility
+
+**RTMP-Specific Settings (shown when RTMP Ingest is selected):**
+
+- **RTMP Endpoint** - Text input for the RTMP ingest endpoint URL
+    - Pre-populated from `RTMP_ENDPOINT` in `constants.ts`
+    - Can be overridden in the UI for testing different endpoints
+    - Example: `rtmp://a1b2c3d4e5f6.global-contribute.live-video.net:1935/app/`
+- **Stream Key** - Password-masked input field for your RTMP stream key
+    - Pre-populated from `STREAM_KEY` in `constants.ts`
+    - Can be overridden in the UI
+    - Kept secret and should not be committed to version control
+
+**Common Encoder Settings (for both ingest types):**
+
+- Encoder Type (GPU/CPU)
+- Video resolution, framerate, and bitrate
+- Audio capture and bitrate settings
+- Debug level configuration
+
 ### Player View Button
 
 When the feature flag is enabled, a new button appears in the Player View settings modal:
@@ -193,16 +259,16 @@ When the feature flag is enabled, a new button appears in the Player View settin
 
 **Button States:**
 
--   **Enabled**: When no GameLift stream is running and not currently starting
--   **Disabled**: When `isDirectBroadcastStarting` is true or GameLift stream is already running
--   **Loading**: Shows spinner when `isDirectBroadcastStarting` is true
+- **Enabled**: When no GameLift stream is running and not currently starting
+- **Disabled**: When `isDirectBroadcastStarting` is true or GameLift stream is already running
+- **Loading**: Shows spinner when `isDirectBroadcastStarting` is true
 
 ### Broadcast Status Indicator
 
 The gameplay area displays a status indicator showing:
 
--   **"LIVE - Broadcasting Gameplay"**: When GameLift instance is broadcasting to IVS
--   **"Gameplay Not Broadcasting"**: When no broadcast is active
+- **"LIVE - Broadcasting Gameplay"**: When GameLift instance is broadcasting to IVS
+- **"Gameplay Not Broadcasting"**: When no broadcast is active
 
 ## Implementation Details
 
@@ -216,7 +282,7 @@ The feature generates two separate IVS stage tokens:
 const participantToken = await gameplayStageManagerRef.current.fetchParticipantToken(
     username,
     ['SUBSCRIBE'], // Only subscribe capability
-    STREAM_SOURCE.GAMEPLAY as 'gameplay'
+    STREAM_SOURCE.GAMEPLAY as 'gameplay',
 );
 ```
 
@@ -226,11 +292,13 @@ const participantToken = await gameplayStageManagerRef.current.fetchParticipantT
 const gameLiftPublishToken = await gameplayStageManagerRef.current.fetchParticipantToken(
     username,
     ['PUBLISH'],
-    STREAM_SOURCE.PLAYER_WEBCAM as 'player_webcam'
+    STREAM_SOURCE.PLAYER_WEBCAM as 'player_webcam',
 );
 ```
 
 ### Environment Variables Payload
+
+**For WHIP Ingest (WebRTC):**
 
 ```typescript
 const payload = {
@@ -239,8 +307,32 @@ const payload = {
     SignalRequest: signalRequest,
     Regions: regions,
     AdditionalEnvironmentVariables: {
+        INGEST_TYPE: 'whip',
         IVS_WHIP_ENDPOINT: 'https://global.whip.live-video.net',
         IVS_STAGE_TOKEN: gameLiftPublishToken,
+        ENCODER_TYPE: broadcastConfig.encoderType,
+        VIDEO_WIDTH: broadcastConfig.videoWidth.toString(),
+        VIDEO_HEIGHT: broadcastConfig.videoHeight.toString(),
+        VIDEO_FRAMERATE: broadcastConfig.videoFramerate.toString(),
+        VIDEO_BITRATE: broadcastConfig.videoBitrate.toString(),
+        ENABLE_AUDIO: broadcastConfig.enableAudio.toString(),
+        AUDIO_BITRATE: broadcastConfig.audioBitrate.toString(),
+    },
+};
+```
+
+**For RTMP Ingest:**
+
+```typescript
+const payload = {
+    AppIdentifier: appId,
+    SGIdentifier: sgId,
+    SignalRequest: signalRequest,
+    Regions: regions,
+    AdditionalEnvironmentVariables: {
+        INGEST_TYPE: 'rtmp',
+        RTMP_ENDPOINT: broadcastConfig.rtmpEndpoint,
+        STREAM_KEY: broadcastConfig.streamKey,
         ENCODER_TYPE: broadcastConfig.encoderType,
         VIDEO_WIDTH: broadcastConfig.videoWidth.toString(),
         VIDEO_HEIGHT: broadcastConfig.videoHeight.toString(),
@@ -281,9 +373,9 @@ The feature includes comprehensive error handling with user-friendly messages:
 
 **Causes:**
 
--   IVS token API unavailable
--   Network connectivity issues
--   Invalid stage ARN
+- IVS token API unavailable
+- Network connectivity issues
+- Invalid stage ARN
 
 **Console Logging:**
 
@@ -297,9 +389,9 @@ console.error('Token generation failed:', tokenError);
 
 **Causes:**
 
--   Lambda function rejects environment variables
--   GameLift API errors
--   Invalid configuration
+- Lambda function rejects environment variables
+- GameLift API errors
+- Invalid configuration
 
 **Lambda Error Display:**
 The system extracts and displays error messages from Lambda responses:
@@ -315,10 +407,10 @@ if (errorData.message) {
 
 All errors use the dismissible error banner format:
 
--   Displayed at the top of the player view
--   Shows up to 3 most recent errors
--   Each error has a dismiss button (×)
--   "Clear all" button available when more than 3 errors exist
+- Displayed at the top of the player view
+- Shows up to 3 most recent errors
+- Each error has a dismiss button (×)
+- "Clear all" button available when more than 3 errors exist
 
 ### Console Logging
 
@@ -390,15 +482,15 @@ Error banner: displayed
 
 **Check CloudWatch Logs:**
 
--   Lambda function: `/aws/lambda/StartStream`
--   Look for environment variable validation
--   Check GameLift API responses
+- Lambda function: `/aws/lambda/StartStream`
+- Look for environment variable validation
+- Check GameLift API responses
 
 **Check Network Tab:**
 
--   POST request to `/` with `AdditionalEnvironmentVariables`
--   Verify request body includes IVS credentials
--   Check response status and body
+- POST request to `/` with `AdditionalEnvironmentVariables`
+- Verify request body includes IVS credentials
+- Check response status and body
 
 ## Troubleshooting
 
@@ -472,12 +564,12 @@ See [GAME_INTEGRATION.md](./GAME_INTEGRATION.md) for more details on game client
 
 ## Related Documentation
 
--   [Main README](./README.md) - Complete application setup and deployment
--   [Game Integration Guide](./GAME_INTEGRATION.md) - Integrate viewer interactions into your game
--   [Data Channel Integration](./DATA_CHANNEL_INTEGRATION.md) - Use GameLift data channels
--   [Amazon GameLift Streams Documentation](https://docs.aws.amazon.com/gameliftstreams/)
--   [Amazon IVS Real-Time Stages Documentation](https://docs.aws.amazon.com/ivs/latest/RealTimeUserGuide/)
--   [WebRTC WHIP Protocol](https://datatracker.ietf.org/doc/html/draft-ietf-wish-whip)
+- [Main README](./README.md) - Complete application setup and deployment
+- [Game Integration Guide](./GAME_INTEGRATION.md) - Integrate viewer interactions into your game
+- [Data Channel Integration](./DATA_CHANNEL_INTEGRATION.md) - Use GameLift data channels
+- [Amazon GameLift Streams Documentation](https://docs.aws.amazon.com/gameliftstreams/)
+- [Amazon IVS Real-Time Stages Documentation](https://docs.aws.amazon.com/ivs/latest/RealTimeUserGuide/)
+- [WebRTC WHIP Protocol](https://datatracker.ietf.org/doc/html/draft-ietf-wish-whip)
 
 ## Support
 

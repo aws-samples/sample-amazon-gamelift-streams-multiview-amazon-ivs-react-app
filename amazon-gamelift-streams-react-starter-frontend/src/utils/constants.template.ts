@@ -57,9 +57,19 @@ export const IVS_CONFIG = {
   stageArn: 'arn:aws:ivs:YOUR_REGION:YOUR_ACCOUNT_ID:stage/YOUR_STAGE_ID' // From IVS-Stage-ARN output
 };
 
-// IVS WHIP Endpoint for direct broadcast
-// This value should not be changed
+// IVS WHIP Endpoint for direct broadcast (WebRTC)
+// This value should not be changed unless using a custom WHIP endpoint
 export const IVS_WHIP_ENDPOINT = 'https://global.whip.live-video.net';
+
+// RTMP Endpoint for direct broadcast (alternative to WHIP)
+// Configure this if you want to use RTMP ingest instead of WHIP
+// Example: 'rtmp://a1b2c3d4e5f6.global-contribute.live-video.net:1935/app/'
+export const RTMP_ENDPOINT = 'rtmp://your-rtmp-endpoint.example.com/live';
+
+// Stream Key for RTMP ingest
+// This is required when using RTMP ingest mode
+// Keep this value secret and do not commit it to version control
+export const STREAM_KEY = 'your-stream-key-here';
 
 // Feature Flags
 // Set to true to enable the GameLift-IVS Direct Broadcast feature
