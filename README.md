@@ -4,9 +4,9 @@ The Amazon GameLift Streams Multiview with Amazon IVS React Starter sample repos
 
 This demo deploys a comprehensive streaming platform with dual-role functionality:
 
--   **Player Role**: Stream GameLift gameplay and webcam to viewers via Amazon IVS Real-Time Stages
--   **Viewer Role**: Watch live streams, participate in real-time chat, and send reactions
--   **Real-Time Features**: Chat messaging, emoji reactions, and real-time video streaming powered by Amazon IVS and AWS AppSync
+- **Player Role**: Stream GameLift gameplay and webcam to viewers via Amazon IVS Real-Time Stages
+- **Viewer Role**: Watch live streams, participate in real-time chat, and send reactions
+- **Real-Time Features**: Chat messaging, emoji reactions, and real-time video streaming powered by Amazon IVS and AWS AppSync
 
 The application is built with [ReactJS](https://react.dev/), an API built with [Amazon API Gateway](https://aws.amazon.com/api-gateway/), [AWS Lambda](https://aws.amazon.com/lambda/) and [Amazon Cognito](https://aws.amazon.com/cognito/) for authorization and authentication, [Amazon IVS Real-Time Stages](https://aws.amazon.com/ivs/) for real-time streaming, and [AWS AppSync](https://aws.amazon.com/appsync/) for real-time chat and reactions.
 
@@ -47,7 +47,6 @@ The Application is deployed through 3 CDK stacks:
     2. Amazon API Gateway with Cognito authorization
     3. Amazon Cognito User Pool for authentication
 2. **AmazonGameLiftStreamsReactStarterIVSStack:** Deploys Amazon IVS Real-Time Stage and AppSync Event API for player-viewer streaming and real-time chat. **This stack must be deployed to the same region as the API stack.** This deployment includes:
-
     1. Amazon IVS Real-Time Stage for real-time video streaming
     2. AppSync Event API for real-time chat and reactions
     3. AppSync API Key and channel namespace configuration
@@ -64,10 +63,10 @@ The Application is deployed through 3 CDK stacks:
 
 This guide assumes you have the following packages already installed. If not, please install before proceeding.
 
--   **node** (v18 or above): https://nodejs.org/en/download/ (Optionally: install node and npm with the Node Version Manager (nvm): https://github.com/nvm-sh/nvm)
--   **npm**: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
--   **aws-cli**: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
--   **aws-cdk**: https://docs.aws.amazon.com/cdk/v2/guide/cli.html
+- **node** (v18 or above): https://nodejs.org/en/download/ (Optionally: install node and npm with the Node Version Manager (nvm): https://github.com/nvm-sh/nvm)
+- **npm**: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
+- **aws-cli**: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+- **aws-cdk**: https://docs.aws.amazon.com/cdk/v2/guide/cli.html
 
 You can use `aws configure` via aws-cli or other mechanism to authenticate your terminal in order to use CDK. You can find additional information on configuring security credentials [here](https://docs.aws.amazon.com/cdk/v2/guide/configure-access.html).
 
@@ -78,8 +77,8 @@ You can use `aws configure` via aws-cli or other mechanism to authenticate your 
 
 It is important to understand the difference between Amazon GameLift Streams `Primary locations` and `Remote locations`:
 
--   **Primary location**: The region where you create your initial Amazon GameLift Streams resources and deploy this application's infrastructure
--   **Remote locations**: Additional regions where you can extend coverage to host your application and stream sessions globally
+- **Primary location**: The region where you create your initial Amazon GameLift Streams resources and deploy this application's infrastructure
+- **Remote locations**: Additional regions where you can extend coverage to host your application and stream sessions globally
 
 > [!IMPORTANT]  
 > **Make sure to set your aws-cli default region to one of the supported Amazon GameLift Streams primary regions before deploying the stacks.** You can find additional information about supported primary regions and remote regions [here](https://docs.aws.amazon.com/gameliftstreams/latest/developerguide/regions-quotas-rande.html).
@@ -121,7 +120,6 @@ It is important to understand the difference between Amazon GameLift Streams `Pr
 11. Run `cdk deploy AmazonGameliftStreamsReactStarterFrontendStack` at the root level of this repository, to deploy the web frontend.
 12. Once everything is deployed, you can visit your deployed frontend via the Amazon CloudFront distribution, or while developing on localhost by running `npm start` within the `/amazon-gamelift-streams-react-starter-frontend` directory.
 13. You will need Amazon Cognito users to authenticate into the frontend web page. Create two users in the deployed userpool in the Cognito AWS Console:
-
     - `player@ivs.rocks` - For the player role (can stream gameplay and webcam)
     - `viewer@ivs.rocks` - For the viewer role (can watch streams, participate in chat, send reactions)
 
@@ -135,21 +133,34 @@ After deployment, the application provides different views based on the authenti
 
 Sign in with `player@ivs.rocks` to access the player interface at the root URL (`/`). The player can:
 
--   Start a GameLift Streams session and play the game
--   Broadcast gameplay to IVS Real-Time Stage for viewers to watch
--   Enable webcam to broadcast their face alongside gameplay
--   Interact with viewers through real-time chat
--   Send and receive reactions
--   Enable Demo Mode to automatically generate chat messages and reactions for testing
+- Start a GameLift Streams session and play the game
+- Broadcast gameplay to IVS Real-Time Stage for viewers to watch
+- Enable webcam to broadcast their face alongside gameplay
+- Interact with viewers through real-time chat
+- Send and receive reactions
+- Enable Demo Mode to automatically generate chat messages and reactions for testing
 
 ### Viewer View
 
 Sign in with `viewer@ivs.rocks` to access the viewer interface (automatically routed). Viewers can:
 
--   Watch the player's live gameplay stream
--   Watch the player's webcam feed
--   Participate in real-time chat
--   Send reactions that appear as floating animations
+- Watch the player's live gameplay stream
+- Watch the player's webcam feed
+- Participate in real-time chat
+- Send reactions that appear as floating animations
+
+### Viewer Invite Feature
+
+The application includes a viewer invite feature that allows players to invite viewers to join the stream as video participants. This enables two-way video communication between the player and a selected viewer.
+
+**How it works:**
+
+1. **Player invites a viewer**: In the Player View, hovering over a username in the chat reveals an invite button. Clicking it sends an invitation to that viewer.
+2. **Viewer accepts or declines**: The invited viewer sees a modal asking them to accept or decline. Accepting grants camera and microphone access.
+3. **Two-way video**: Once accepted, the viewer's webcam appears in the player's sidebar, and the viewer sees their own preview. Other viewers in the stream can also see the invited viewer's video.
+4. **Leaving the stream**: The invited viewer can leave at any time using the leave button on their video preview. The player can also cancel the invitation.
+
+This feature uses the same IVS Real-Time Stage infrastructure, with invited viewers publishing to the stage using a `participant_webcam` stream source attribute to distinguish their feed from the player's webcam.
 
 ### Interactive Play Testing (Unified View)
 
@@ -157,15 +168,15 @@ The application includes a unified view for conducting interactive play testing 
 
 **Key Features:**
 
--   Single unified interface for all participants regardless of role
--   Streaming GameLift gameplay to IVS Real-Time Stage
--   Broadcasting webcam alongside gameplay
--   Seeing and hearing multiple participants simultaneously
--   Vertical scrolling layout to accommodate multiple participant video feeds
--   Real-time chat via off-canvas panel
--   Media controls for camera and microphone
--   Dynamic control transfer between participants
--   Automatic fallback to view-only mode if media permissions are denied
+- Single unified interface for all participants regardless of role
+- Streaming GameLift gameplay to IVS Real-Time Stage
+- Broadcasting webcam alongside gameplay
+- Seeing and hearing multiple participants simultaneously
+- Vertical scrolling layout to accommodate multiple participant video feeds
+- Real-time chat via off-canvas panel
+- Media controls for camera and microphone
+- Dynamic control transfer between participants
+- Automatic fallback to view-only mode if media permissions are denied
 
 > [!IMPORTANT]  
 > The Interactive Play Testing view only supports games configured with `supportsDirectBroadcast: true` in the `gameLibrary`. This ensures optimal performance using the GameLift-IVS Direct Broadcast feature for reduced latency and improved stream quality.
@@ -184,34 +195,32 @@ Navigate to `/interactive-playtest` while signed in with either `player@ivs.rock
 
 Users authenticated as `player@ivs.rocks` have the ability to:
 
--   Start GameLift gameplay sessions
--   Stream gameplay and webcam to all participants via IVS Real-Time Stage
--   Control gameplay (stop, fullscreen, input toggle)
--   Approve or deny takeover requests from viewers
--   Join the IVS stage with webcam and microphone to communicate with other participants
+- Start GameLift gameplay sessions
+- Stream gameplay and webcam to all participants via IVS Real-Time Stage
+- Control gameplay (stop, fullscreen, input toggle)
+- Approve or deny takeover requests from viewers
+- Join the IVS stage with webcam and microphone to communicate with other participants
 
 **Viewer Role (`viewer@ivs.rocks`)**
 
 Users authenticated as `viewer@ivs.rocks` have the ability to:
 
--   Request takeover of active gameplay sessions
--   Assume gameplay control when takeover is approved
--   Join the IVS stage with webcam and microphone to communicate with other participants
--   Watch gameplay streams from the current controller
+- Request takeover of active gameplay sessions
+- Assume gameplay control when takeover is approved
+- Join the IVS stage with webcam and microphone to communicate with other participants
+- Watch gameplay streams from the current controller
 
 #### Control Request and Approval Workflow
 
 The Interactive Play Testing view enables dynamic transfer of gameplay control between participants through a structured control request workflow:
 
 1. **Initiating a Control Request**
-
     - When gameplay is active, viewers see a "Request Control" button
     - Clicking the button sends a control request to the current controller
     - The requester sees "Waiting for approval" status
     - The request automatically times out after 60 seconds if not answered
 
 2. **Responding to Control Requests**
-
     - The current controller receives a notification showing the requester's username
     - Three response options are available:
         - **Approve**: Grants control to the requester
@@ -220,7 +229,6 @@ The Interactive Play Testing view enables dynamic transfer of gameplay control b
     - Only one control request can be active at a time
 
 3. **Control Approval Process**
-
     - When approved, the current controller's GameLift connection automatically disconnects
     - The session ID is securely transferred to the requester
     - The requester establishes a new GameLift connection using the transferred session ID
@@ -257,38 +265,38 @@ The Interactive Play Testing view enables dynamic transfer of gameplay control b
 
 **For All Participants:**
 
--   Toggle your camera and microphone using the media control buttons
--   Access chat via the chat button (opens an off-canvas panel)
--   View all participant webcam feeds in a vertical scrollable layout
--   See real-time status updates for control requests and approvals
+- Toggle your camera and microphone using the media control buttons
+- Access chat via the chat button (opens an off-canvas panel)
+- View all participant webcam feeds in a vertical scrollable layout
+- See real-time status updates for control requests and approvals
 
 #### Automatic IVS Broadcasting
 
 The Interactive Play Testing view features automatic IVS broadcasting to ensure seamless transitions:
 
--   When any participant starts a GameLift session, gameplay automatically broadcasts to IVS
--   When a control request is approved, the new controller's gameplay automatically broadcasts
--   All non-player participants continuously see the current controller's gameplay
--   Webcam feeds remain visible throughout all transitions
+- When any participant starts a GameLift session, gameplay automatically broadcasts to IVS
+- When a control request is approved, the new controller's gameplay automatically broadcasts
+- All non-player participants continuously see the current controller's gameplay
+- Webcam feeds remain visible throughout all transitions
 
 This automatic broadcasting eliminates manual intervention and ensures that control transitions are smooth and immediate for all session participants.
 
 #### Key Features
 
--   **Unified Interface**: Single view for all participants regardless of role
--   **Role-Based Access**: UI adapts based on user authentication and control status
--   **Bidirectional Communication**: All participants can see and hear each other via webcam and microphone
--   **Dynamic Control Transfer**: Seamless handoff of gameplay control between participants
--   **Real-Time Chat**: Off-canvas chat panel accessible throughout the session
--   **Vertical Scrolling Layout**: Accommodates multiple participant video feeds
--   **Automatic Reconnection**: Robust error handling with automatic retry options
+- **Unified Interface**: Single view for all participants regardless of role
+- **Role-Based Access**: UI adapts based on user authentication and control status
+- **Bidirectional Communication**: All participants can see and hear each other via webcam and microphone
+- **Dynamic Control Transfer**: Seamless handoff of gameplay control between participants
+- **Real-Time Chat**: Off-canvas chat panel accessible throughout the session
+- **Vertical Scrolling Layout**: Accommodates multiple participant video feeds
+- **Automatic Reconnection**: Robust error handling with automatic retry options
 
 #### Technical Notes
 
--   Control messages for control request coordination use the AppSync WebSocket channel with distinct action types to avoid interfering with chat functionality
--   Session IDs are securely transferred during control approval to enable connection reuse
--   The view reuses existing components (AppSyncChatClient, IVSStageManager, ChatComponent) for consistency
--   Media permissions fallback: If camera/microphone access is denied, participants can still view the session in subscribe-only mode
+- Control messages for control request coordination use the AppSync WebSocket channel with distinct action types to avoid interfering with chat functionality
+- Session IDs are securely transferred during control approval to enable connection reuse
+- The view reuses existing components (AppSyncChatClient, IVSStageManager, ChatComponent) for consistency
+- Media permissions fallback: If camera/microphone access is denied, participants can still view the session in subscribe-only mode
 
 ### Creating Required AWS Resources
 
@@ -314,9 +322,9 @@ Amazon GameLift Streams pricing is based on your allocated stream capacity. You 
 
 Amazon IVS Real-Time Stages pricing is based on participant hours. You are charged for:
 
--   **Participant hours**: The duration of time each host or viewer is connected to a stage resource
--   **Composite recording** (optional): Hourly rate for video encoding when using composite recording
--   **Storage**: Standard Amazon S3 storage and request costs for recordings
+- **Participant hours**: The duration of time each host or viewer is connected to a stage resource
+- **Composite recording** (optional): Hourly rate for video encoding when using composite recording
+- **Storage**: Standard Amazon S3 storage and request costs for recordings
 
 Individual participant recording incurs no additional Amazon IVS charges. Pricing varies by region. For detailed pricing information, please refer to [Amazon IVS pricing](https://aws.amazon.com/ivs/pricing/).
 
@@ -324,8 +332,8 @@ Individual participant recording incurs no additional Amazon IVS charges. Pricin
 
 AWS AppSync Events pricing is based on Event API operations and real-time connection minutes. You are charged for:
 
--   **Event API operations**: Includes publish operations and channel subscriptions
--   **Real-time connection minutes**: Duration of WebSocket connections to the Event API
+- **Event API operations**: Includes publish operations and channel subscriptions
+- **Real-time connection minutes**: Duration of WebSocket connections to the Event API
 
 AWS AppSync Events includes a Free Tier with monthly usage at no charge for 12 months. For detailed pricing information, please refer to [AWS AppSync pricing](https://aws.amazon.com/appsync/pricing/).
 
@@ -436,18 +444,15 @@ Response Body:
 ### Stream Session Lifecycle
 
 1. **Initialization**
-
     - User provides Stream Group ID and Application ID
     - Frontend generates WebRTC signal request
 
 2. **Session Creation**
-
     - Frontend calls Start Stream API with credentials and configuration
     - Backend initiates stream session with Amazon GameLift Streams
     - Returns session ARN and initial signal response
 
 3. **Session Establishment**
-
     - Frontend polls Get Stream Session API until status is 'ACTIVE'
     - Maximum polling duration: 600 seconds (10 minutes)
     - Once active, WebRTC connection is established
@@ -465,12 +470,12 @@ The application uses a modern serverless architecture to deliver real-time strea
 
 ### Core Components
 
--   **Amazon GameLift Streams**: Hosts game instances and streams gameplay
--   **Amazon IVS Real-Time Stages**: Provides real-time video streaming between players and viewers
--   **AWS AppSync Event API**: Manages real-time chat messages and reactions via WebSocket
--   **Amazon Cognito**: Handles user authentication and authorization
--   **Amazon API Gateway**: Provides secure REST API endpoints
--   **AWS Lambda**: Processes stream management and token generation
+- **Amazon GameLift Streams**: Hosts game instances and streams gameplay
+- **Amazon IVS Real-Time Stages**: Provides real-time video streaming between players and viewers
+- **AWS AppSync Event API**: Manages real-time chat messages and reactions via WebSocket
+- **Amazon Cognito**: Handles user authentication and authorization
+- **Amazon API Gateway**: Provides secure REST API endpoints
+- **AWS Lambda**: Processes stream management and token generation
 
 ### Data Flow
 
@@ -482,19 +487,19 @@ The application uses a modern serverless architecture to deliver real-time strea
 
 ### Security Model
 
--   **Role-Based Access**: Different user experiences based on Cognito user identity
--   **API Authentication**: All API calls secured with Cognito JWT tokens
--   **Stage Tokens**: IVS participant tokens generated securely via authenticated Lambda
--   **CORS Protection**: Proper CORS configuration for web application security
+- **Role-Based Access**: Different user experiences based on Cognito user identity
+- **API Authentication**: All API calls secured with Cognito JWT tokens
+- **Stage Tokens**: IVS participant tokens generated securely via authenticated Lambda
+- **CORS Protection**: Proper CORS configuration for web application security
 
 ## Multi-Game Configuration
 
 This sample application supports configuring multiple GameLift Streams applications with descriptive names for easy selection. The `GAMELIFT_STREAMS_CONFIG.gameLibrary` object allows you to define multiple game configurations, each with:
 
--   **Descriptive Name**: A user-friendly name that appears in the Player View dropdown (e.g., "Unity Explorer", "Racing Demo")
--   **Application ID**: The GameLift Streams Application ID for this game
--   **Stream Group ID**: The GameLift Streams Stream Group ID for this game
--   **Direct Broadcast Support**: Whether this game supports GameLift-IVS Direct Broadcast feature
+- **Descriptive Name**: A user-friendly name that appears in the Player View dropdown (e.g., "Unity Explorer", "Racing Demo")
+- **Application ID**: The GameLift Streams Application ID for this game
+- **Stream Group ID**: The GameLift Streams Stream Group ID for this game
+- **Direct Broadcast Support**: Whether this game supports GameLift-IVS Direct Broadcast feature
 
 ### Using Multiple Games
 
@@ -540,35 +545,35 @@ This sample showcases how to reconnect to a previous stream session after losing
 
 **Authentication Errors**
 
--   Ensure Cognito users are created with correct email addresses (`player@ivs.rocks`, `viewer@ivs.rocks`)
--   Verify email addresses are marked as verified in Cognito console
--   Check that `constants.ts` has correct API endpoint (no trailing slash)
+- Ensure Cognito users are created with correct email addresses (`player@ivs.rocks`, `viewer@ivs.rocks`)
+- Verify email addresses are marked as verified in Cognito console
+- Check that `constants.ts` has correct API endpoint (no trailing slash)
 
 **Stream Connection Issues**
 
--   Verify GameLift Streams Application and Stream Group IDs in `constants.ts`
--   Ensure GameLift capacity is allocated in your selected region
--   Check CloudWatch logs for Lambda function errors
+- Verify GameLift Streams Application and Stream Group IDs in `constants.ts`
+- Ensure GameLift capacity is allocated in your selected region
+- Check CloudWatch logs for Lambda function errors
 
 **IVS Real-Time Stages Issues**
 
--   Confirm IVS Stage ARN is correctly configured in `constants.ts`
--   Verify browser supports WebRTC (required for IVS Real-Time Stages)
--   Check browser permissions for camera/microphone access
+- Confirm IVS Stage ARN is correctly configured in `constants.ts`
+- Verify browser supports WebRTC (required for IVS Real-Time Stages)
+- Check browser permissions for camera/microphone access
 
 **Chat/Reactions Not Working**
 
--   Verify AppSync configuration in `constants.ts`
--   Check browser network tab for WebSocket connection errors
--   Ensure AppSync API key is valid and not expired
+- Verify AppSync configuration in `constants.ts`
+- Check browser network tab for WebSocket connection errors
+- Ensure AppSync API key is valid and not expired
 
 **General Debugging**
 
--   View logs within the Amazon CloudWatch AWS console
--   Monitor your terminal when deploying CDK stacks
--   Ensure CDK stacks are properly deployed within the CloudFormation AWS Console
--   Follow deployment steps exactly and in the correct sequence
--   On mobile devices, ensure you include `https://` before the CloudFront URL
+- View logs within the Amazon CloudWatch AWS console
+- Monitor your terminal when deploying CDK stacks
+- Ensure CDK stacks are properly deployed within the CloudFormation AWS Console
+- Follow deployment steps exactly and in the correct sequence
+- On mobile devices, ensure you include `https://` before the CloudFront URL
 
 ## Clean Up
 
