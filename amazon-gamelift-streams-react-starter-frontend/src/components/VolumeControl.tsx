@@ -94,9 +94,10 @@ export const VolumeControl: React.FC<VolumeControlProps> = ({
 
   const handleMouseLeave = (event: React.MouseEvent) => {
     // Only hide if we're not moving to the slider
-    const relatedTarget = event.relatedTarget as HTMLElement;
+    const relatedTarget = event.relatedTarget;
     // Check if relatedTarget is a valid Node before using contains()
-    if (!relatedTarget || !volumeControlRef.current?.contains(relatedTarget)) {
+    const isValidNode = relatedTarget instanceof Node;
+    if (!isValidNode || !volumeControlRef.current?.contains(relatedTarget)) {
       // Delay hiding to allow for mouse movement to slider
       setTimeout(() => {
         if (sliderRef.current && !sliderRef.current.matches(':hover')) {

@@ -18,6 +18,8 @@ import { VolumeControl } from './VolumeControl';
 import { SettingsModal } from './SettingsModal';
 import { generateUsername } from '../utils/usernameGenerator';
 import { APPSYNC_CONFIG, STREAM_SOURCE, GAMELIFT_STREAMS_CONFIG, IVS_WHIP_ENDPOINT, ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST } from '../utils/constants';
+import { ControlMessage, isViewerInviteAcceptedMessage, isViewerInviteDeclinedMessage, isViewerLeftStageMessage } from '../types/chat.types';
+import { RemoteStageStream } from '../types/ivs.types';
 import './Views.css';
 import './PlayerView.css';
 
@@ -128,6 +130,11 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
     debugPipeline: false,
     debugLevel: 0
   });
+
+  // Viewer Invite State
+  const [invitedViewer, setInvitedViewer] = useState<string | null>(null);
+  const [invitedViewerStream, setInvitedViewerStream] = useState<RemoteStageStream | null>(null);
+  const [isInvitePending, setIsInvitePending] = useState(false);
   
   // Reconnection State
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -138,12 +145,113 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
   const gameLiftVideoRef = useRef<HTMLVideoElement>(null);
   const gameLiftAudioRef = useRef<HTMLAudioElement>(null);
   const webcamVideoRef = useRef<HTMLVideoElement>(null);
+  const invitedViewerVideoRef = useRef<HTMLVideoElement>(null);
   const gameliftstreamsRef = useRef<gameliftstreamssdk.GameLiftStreams | null>(null);
   const gameplayStageManagerRef = useRef<IVSStageManager>(new IVSStageManager());
   const webcamStageManagerRef = useRef<IVSStageManager>(new IVSStageManager());
 
   // Chat Client
   const [chatClient] = useState(() => new AppSyncChatClient(APPSYNC_CONFIG));
+
+  // Handle control messages for viewer invites
+  const handleControlMessage = (message: ControlMessage) => {
+    console.log('PlayerView received control message:', message);
+
+    if (isViewerInviteAcceptedMessage(message)) {
+      // Viewer accepted the invite
+      if (message.invitedUsername === invitedViewer) {
+        console.log('Viewer accepted invite:', message.invitedUsername);
+        setIsInvitePending(false);
+        // The viewer will now join the webcam stage as a publisher
+        // We'll receive their stream via onStreamsAdded
+      }
+    } else if (isViewerInviteDeclinedMessage(message)) {
+      // Viewer declined the invite
+      if (message.invitedUsername === invitedViewer) {
+        console.log('Viewer declined invite:', message.invitedUsername);
+        setInvitedViewer(null);
+        setIsInvitePending(false);
+        setErrors(prev => [...prev, `${message.invitedUsername} declined your invitation to join the stream.`]);
+      }
+    } else if (isViewerLeftStageMessage(message)) {
+      // Viewer left the stage
+      if (message.viewerUsername === invitedViewer) {
+        console.log('Invited viewer left stage:', message.viewerUsername);
+        setInvitedViewer(null);
+        setInvitedViewerStream(null);
+        setIsInvitePending(false);
+        // Clear the video element
+        if (invitedViewerVideoRef.current) {
+          invitedViewerVideoRef.current.srcObject = null;
+        }
+      }
+    }
+  };
+
+  // Register control message handler
+  useEffect(() => {
+    chatClient.onControlMessage(handleControlMessage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invitedViewer]);
+
+  /**
+   * Invite a viewer to join the stage as a publisher
+   */
+  const inviteViewer = async (viewerUsername: string) => {
+    if (invitedViewer !== null) {
+      setErrors(prev => [...prev, 'You can only invite one viewer at a time.']);
+      return;
+    }
+
+    try {
+      setIsInvitePending(true);
+      setInvitedViewer(viewerUsername);
+
+      // Send invite control message via AppSync
+      const inviteMessage = {
+        action: 'VIEWER_INVITE',
+        inviterUsername: username,
+        invitedUsername: viewerUsername,
+        timestamp: Date.now()
+      };
+
+      await (chatClient as any).publishRaw(inviteMessage);
+      console.log('Sent viewer invite to:', viewerUsername);
+    } catch (error) {
+      console.error('Failed to send viewer invite:', error);
+      setErrors(prev => [...prev, `Failed to invite ${viewerUsername}. Please try again.`]);
+      setInvitedViewer(null);
+      setIsInvitePending(false);
+    }
+  };
+
+  /**
+   * Cancel an outstanding viewer invite
+   */
+  const cancelViewerInvite = async () => {
+    if (!invitedViewer) return;
+
+    try {
+      const cancelMessage = {
+        action: 'VIEWER_INVITE_CANCELLED',
+        inviterUsername: username,
+        timestamp: Date.now()
+      };
+
+      await (chatClient as any).publishRaw(cancelMessage);
+      console.log('Cancelled viewer invite');
+      
+      setInvitedViewer(null);
+      setIsInvitePending(false);
+      setInvitedViewerStream(null);
+      
+      if (invitedViewerVideoRef.current) {
+        invitedViewerVideoRef.current.srcObject = null;
+      }
+    } catch (error) {
+      console.error('Failed to cancel viewer invite:', error);
+    }
+  };
 
   // Initialize GameLift Streams SDK on mount
   useEffect(() => {
@@ -1017,9 +1125,10 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
       }
 
       // Fetch participant token with player_webcam stream_source attribute
+      // Include SUBSCRIBE capability to receive invited viewer streams
       const participantToken = await webcamStageManagerRef.current.fetchParticipantToken(
         username,
-        ['PUBLISH'],
+        ['PUBLISH', 'SUBSCRIBE'],
         STREAM_SOURCE.PLAYER_WEBCAM as 'player_webcam'
       );
 
@@ -1039,6 +1148,55 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
             console.log('Successfully connected to webcam IVS stage');
             setIsWebcamBroadcasting(true);
             setIsWebcamBroadcastStarting(false);
+          }
+        },
+        onStreamsAdded: (streams) => {
+          console.log('Webcam stage streams added:', streams);
+          // Handle streams from invited viewers
+          streams.forEach((stream: any) => {
+            const participantInfo = stream._participantInfo;
+            const streamSource = participantInfo?.attributes?.stream_source;
+            const participantUsername = participantInfo?.attributes?.username;
+            
+            // Check if this is a participant webcam stream (from invited viewer)
+            if (streamSource === 'participant_webcam' && !participantInfo?.isLocal) {
+              console.log('Received invited viewer stream from:', participantUsername);
+              
+              // Set the invited viewer stream
+              setInvitedViewerStream(stream);
+              
+              // Attach to video element
+              if (invitedViewerVideoRef.current && stream.mediaStreamTrack) {
+                let mediaStream = invitedViewerVideoRef.current.srcObject as MediaStream;
+                if (!mediaStream) {
+                  mediaStream = new MediaStream();
+                  invitedViewerVideoRef.current.srcObject = mediaStream;
+                }
+                
+                const existingTracks = mediaStream.getTracks();
+                const trackExists = existingTracks.some(t => t.id === stream.mediaStreamTrack.id);
+                if (!trackExists) {
+                  mediaStream.addTrack(stream.mediaStreamTrack);
+                  console.log(`Added ${stream.mediaStreamTrack.kind} track from invited viewer`);
+                }
+              }
+            }
+          });
+        },
+        onParticipantLeft: (participant) => {
+          console.log('Participant left webcam stage:', participant);
+          const participantUsername = participant?.attributes?.username;
+          
+          // Check if the invited viewer left
+          if (participantUsername === invitedViewer) {
+            console.log('Invited viewer left the stage');
+            setInvitedViewer(null);
+            setInvitedViewerStream(null);
+            setIsInvitePending(false);
+            
+            if (invitedViewerVideoRef.current) {
+              invitedViewerVideoRef.current.srcObject = null;
+            }
           }
         },
         onError: (error) => {
@@ -1077,6 +1235,14 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
       // Clear video element
       if (webcamVideoRef.current) {
         webcamVideoRef.current.srcObject = null;
+      }
+
+      // Clear invited viewer state
+      setInvitedViewer(null);
+      setInvitedViewerStream(null);
+      setIsInvitePending(false);
+      if (invitedViewerVideoRef.current) {
+        invitedViewerVideoRef.current.srcObject = null;
       }
 
       setWebcamStage(null);
@@ -1182,18 +1348,24 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
         {/* Error Messages */}
         {errors.length > 0 && (
           <div>
-            {errors.slice(-3).map((error, index) => (
-              <div key={index} className="error-banner error-banner-flex">
-                <span>{error}</span>
-                <button
-                  onClick={() => setErrors(prev => prev.filter((_, i) => i !== prev.length - 3 + index))}
-                  className="error-dismiss-btn"
-                  aria-label="Dismiss error"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
+            {errors.slice(-3).map((error, index) => {
+              // Calculate the actual index in the errors array
+              const actualIndex = errors.length - 3 + index < 0 
+                ? index 
+                : errors.length - 3 + index;
+              return (
+                <div key={actualIndex} className="error-banner error-banner-flex">
+                  <span>{error}</span>
+                  <button
+                    onClick={() => setErrors(prev => prev.filter((_, i) => i !== actualIndex))}
+                    className="error-dismiss-btn"
+                    aria-label="Dismiss error"
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
             {errors.length > 3 && (
               <div className="error-banner error-banner-small">
                 + {errors.length - 3} more error{errors.length - 3 !== 1 ? 's' : ''}
@@ -1305,19 +1477,16 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
 
           {/* Sidebar */}
           <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-            {/* Sidebar Header */}
-            <div className="sidebar-header p-0 mb-3">
-              <button
-                className="collapse-btn border-0 bg-transparent"
-                onClick={() => setIsSidebarCollapsed(true)}
-                title="Hide chat"
-                >
-                <i className="bi bi-chevron-right"></i>
-              </button>
-            </div>
-
             {/* Webcam Area (Area 2) */}
             <div className="webcam-video-container video-container">
+              {/* Collapse Sidebar Button */}
+              <button
+                className="collapse-sidebar-btn"
+                onClick={() => setIsSidebarCollapsed(true)}
+                title="Hide chat"
+              >
+                <i className="bi bi-chevron-right"></i>
+              </button>
               {/* Broadcast Status Indicator */}
               <div className="broadcast-status">
                 <div className={`status-dot ${isWebcamBroadcasting ? '' : 'inactive'}`}></div>
@@ -1366,9 +1535,58 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
               )}
             </div>
 
+            {/* Invited Viewer Video Area */}
+            {(invitedViewer || invitedViewerStream) && (
+              <div className="invited-viewer-video-container video-container">
+                {/* Status Indicator */}
+                <div className="broadcast-status">
+                  <div className={`status-dot ${invitedViewerStream ? '' : 'inactive'}`}></div>
+                  <span>
+                    {invitedViewerStream 
+                      ? `${invitedViewer} - LIVE` 
+                      : isInvitePending 
+                        ? `Waiting for ${invitedViewer}...` 
+                        : `${invitedViewer}`}
+                  </span>
+                </div>
+
+                {/* Invited Viewer Video */}
+                <video
+                  ref={invitedViewerVideoRef}
+                  autoPlay
+                  playsInline
+                />
+
+                {/* Cancel Invite Button */}
+                <button
+                  className="cancel-invite-btn"
+                  onClick={cancelViewerInvite}
+                  title={`Remove ${invitedViewer} from stream`}
+                  aria-label={`Remove ${invitedViewer} from stream`}
+                >
+                  <i className="bi bi-x-circle-fill"></i>
+                </button>
+
+                {/* Pending Invite Overlay */}
+                {isInvitePending && !invitedViewerStream && (
+                  <div className="loading-overlay">
+                    <div className="spinner"></div>
+                    <div>Waiting for {invitedViewer}...</div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Chat Area (Area 3) */}
             <div className="chat-container">
-              <ChatComponent username={username} chatClient={chatClient} isSidebarCollapsed={isSidebarCollapsed} />
+              <ChatComponent 
+                username={username} 
+                chatClient={chatClient} 
+                isSidebarCollapsed={isSidebarCollapsed}
+                isPlayer={true}
+                invitedViewer={invitedViewer}
+                onInviteViewer={inviteViewer}
+              />
             </div>
           </div>
         </div>

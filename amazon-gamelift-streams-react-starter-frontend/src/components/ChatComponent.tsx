@@ -14,6 +14,9 @@ interface ChatComponentProps {
   hideHeader?: boolean;
   removeRoundedCorners?: boolean;
   isSidebarCollapsed?: boolean;
+  isPlayer?: boolean;
+  invitedViewer?: string | null;
+  onInviteViewer?: (viewerUsername: string) => void;
 }
 
 interface FloatingEmote {
@@ -22,7 +25,16 @@ interface FloatingEmote {
   left: number;
 }
 
-export const ChatComponent: React.FC<ChatComponentProps> = ({ username, chatClient, hideHeader = false, removeRoundedCorners = false, isSidebarCollapsed = false }) => {
+export const ChatComponent: React.FC<ChatComponentProps> = ({ 
+  username, 
+  chatClient, 
+  hideHeader = false, 
+  removeRoundedCorners = false, 
+  isSidebarCollapsed = false,
+  isPlayer = false,
+  invitedViewer = null,
+  onInviteViewer
+}) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isConnected, setIsConnected] = useState(false);
@@ -31,6 +43,7 @@ export const ChatComponent: React.FC<ChatComponentProps> = ({ username, chatClie
   const [queuedMessageCount, setQueuedMessageCount] = useState(0);
   const [showEmoteOverlay, setShowEmoteOverlay] = useState(false);
   const [floatingEmotes, setFloatingEmotes] = useState<FloatingEmote[]>([]);
+  const [hoveredMessageUser, setHoveredMessageUser] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [userHasScrolledUp, setUserHasScrolledUp] = useState(false);
@@ -173,6 +186,18 @@ export const ChatComponent: React.FC<ChatComponentProps> = ({ username, chatClie
     }, 3000);
   };
 
+  // Handle inviting a viewer to join the stage
+  const handleInviteViewer = (viewerUsername: string) => {
+    if (onInviteViewer && viewerUsername !== username) {
+      onInviteViewer(viewerUsername);
+    }
+  };
+
+  // Check if a user can be invited (not the player, not already invited)
+  const canInviteUser = (messageUser: string): boolean => {
+    return isPlayer && messageUser !== username && invitedViewer === null;
+  };
+
   // Handle sending reactions
   const handleSendReaction = async (reaction: string) => {
     try {
@@ -247,9 +272,32 @@ export const ChatComponent: React.FC<ChatComponentProps> = ({ username, chatClie
             <div
               key={`${msg.timestamp}-${index}`}
               className={`message ${msg.user === username ? 'own-message' : ''}`}
+              onMouseEnter={() => setHoveredMessageUser(msg.user)}
+              onMouseLeave={() => setHoveredMessageUser(null)}
             >
               <div className="message-header">
-                <span className="message-username">{msg.user}</span>
+                <div className="message-user-container">
+                  <span className="message-username">{msg.user}</span>
+                  {/* Invite button - shown on hover for players when hovering over other users' messages */}
+                  {isPlayer && 
+                   hoveredMessageUser === msg.user && 
+                   canInviteUser(msg.user) && (
+                    <button
+                      className="invite-viewer-btn"
+                      onClick={() => handleInviteViewer(msg.user)}
+                      title={`Invite ${msg.user} to join your stream`}
+                      aria-label={`Invite ${msg.user} to join your stream`}
+                    >
+                      <i className="bi bi-person-plus-fill"></i>
+                    </button>
+                  )}
+                  {/* Show invited badge if this user is the invited viewer */}
+                  {invitedViewer === msg.user && (
+                    <span className="invited-badge" title="Invited to stream">
+                      <i className="bi bi-broadcast"></i>
+                    </span>
+                  )}
+                </div>
                 <span className="message-timestamp">{formatTimestamp(msg.timestamp)}</span>
               </div>
               <div className="message-text">{msg.message}</div>

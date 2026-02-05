@@ -6,14 +6,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { StageConnectionState } from 'amazon-ivs-web-broadcast';
+import { Stage, StageConnectionState } from 'amazon-ivs-web-broadcast';
 import { AppSyncChatClient } from '../utils/AppSyncChatClient';
 import { IVSStageManager } from '../utils/IVSStageManager';
 import { ChatComponent } from './ChatComponent';
 import { VolumeControl } from './VolumeControl';
 import { generateUsername } from '../utils/usernameGenerator';
-import { APPSYNC_CONFIG, ENABLE_REMOTE_PLAYER_CONTROL } from '../utils/constants';
+import { APPSYNC_CONFIG, ENABLE_REMOTE_PLAYER_CONTROL, STREAM_SOURCE } from '../utils/constants';
 import { RemoteStageStream } from '../types/ivs.types';
+import { ControlMessage, isViewerInviteMessage, isViewerInviteCancelledMessage } from '../types/chat.types';
 import './Views.css';
 
 interface ViewerViewProps {
@@ -27,6 +28,8 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
   // IVS Stage State
   const [gameplayStream, setGameplayStream] = useState<RemoteStageStream | null>(null);
   const [webcamStream, setWebcamStream] = useState<RemoteStageStream | null>(null);
+  const [participantWebcamStream, setParticipantWebcamStream] = useState<RemoteStageStream | null>(null);
+  const [participantWebcamUsername, setParticipantWebcamUsername] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
@@ -43,6 +46,22 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
   const isPlayerSpawnedRef = useRef(false); // Ref to track spawn state for closures
   const [isVideoFocused, setIsVideoFocused] = useState(false);
   const [gameSupportsCouch, setGameSupportsCouch] = useState(false);
+
+  // Viewer Invite State
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviterUsername, setInviterUsername] = useState<string | null>(null);
+  const [isJoiningAsPublisher, setIsJoiningAsPublisher] = useState(false);
+  const [isBroadcastingWebcam, setIsBroadcastingWebcam] = useState(false);
+  const [localWebcamStream, setLocalWebcamStream] = useState<MediaStream | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [webcamStage, setWebcamStage] = useState<Stage | null>(null);
+  const [webcamStageStreams, setWebcamStageStreams] = useState<any[]>([]);
+  const [isCameraEnabled, setIsCameraEnabled] = useState(true);
+  const [isMicEnabled, setIsMicEnabled] = useState(true);
+  const webcamStageManagerRef = useRef<IVSStageManager>(new IVSStageManager());
+  const localWebcamVideoRef = useRef<HTMLVideoElement>(null);
+  const participantWebcamVideoRef = useRef<HTMLVideoElement>(null);
+  const inviteModalRef = useRef<HTMLDivElement>(null);
 
   // Refs
   const gameplayVideoRef = useRef<HTMLVideoElement>(null);
@@ -69,10 +88,293 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
   // Chat Client
   const [chatClient] = useState(() => new AppSyncChatClient(APPSYNC_CONFIG));
 
+  // Handle control messages for viewer invites
+  const handleControlMessage = (message: ControlMessage) => {
+    console.log('ViewerView received control message:', message);
+
+    if (isViewerInviteMessage(message)) {
+      // Check if this invite is for us
+      if (message.invitedUsername === username) {
+        console.log('Received invite from:', message.inviterUsername);
+        setInviterUsername(message.inviterUsername);
+        setShowInviteModal(true);
+        
+        // Focus the modal after rendering
+        setTimeout(() => {
+          if (inviteModalRef.current) {
+            const firstButton = inviteModalRef.current.querySelector('button');
+            if (firstButton) {
+              (firstButton as HTMLButtonElement).focus();
+            }
+          }
+        }, 100);
+      }
+    } else if (isViewerInviteCancelledMessage(message)) {
+      // Player cancelled the invite
+      if (message.inviterUsername === inviterUsername) {
+        console.log('Invite cancelled by:', message.inviterUsername);
+        setShowInviteModal(false);
+        setInviterUsername(null);
+        
+        // If we were already broadcasting, stop
+        if (isBroadcastingWebcam) {
+          leaveWebcamStage();
+        }
+      }
+    }
+  };
+
+  // Register control message handler
+  useEffect(() => {
+    chatClient.onControlMessage(handleControlMessage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username, inviterUsername, isBroadcastingWebcam]);
+
+  // Attach local webcam stream to video element when it becomes available
+  useEffect(() => {
+    if (localWebcamStream && localWebcamVideoRef.current && isBroadcastingWebcam) {
+      const previewStream = new MediaStream([localWebcamStream.getVideoTracks()[0]]);
+      localWebcamVideoRef.current.srcObject = previewStream;
+      console.log('Attached local webcam stream to video element');
+    }
+  }, [localWebcamStream, isBroadcastingWebcam]);
+
+  // Attach participant webcam stream to video element when it becomes available
+  useEffect(() => {
+    if (participantWebcamStream && participantWebcamVideoRef.current) {
+      const stream = participantWebcamStream as any;
+      const mediaStreamTrack = stream.mediaStreamTrack;
+      
+      if (mediaStreamTrack) {
+        let existingMediaStream = participantWebcamVideoRef.current.srcObject as MediaStream;
+        
+        if (!existingMediaStream) {
+          existingMediaStream = new MediaStream();
+          participantWebcamVideoRef.current.srcObject = existingMediaStream;
+        }
+        
+        const existingTracks = existingMediaStream.getTracks();
+        const trackExists = existingTracks.some(t => t.id === mediaStreamTrack.id);
+        
+        if (!trackExists) {
+          existingMediaStream.addTrack(mediaStreamTrack);
+          console.log('Attached participant webcam stream to video element');
+        }
+      }
+    }
+  }, [participantWebcamStream]);
+
+  /**
+   * Accept the invite and join the webcam stage as a publisher
+   */
+  const acceptInvite = async () => {
+    if (!inviterUsername) return;
+
+    setShowInviteModal(false);
+    setIsJoiningAsPublisher(true);
+
+    try {
+      // Request user media (camera and microphone)
+      const userMediaStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
+
+      setLocalWebcamStream(userMediaStream);
+
+      // Fetch participant token with PUBLISH capability and participant_webcam source
+      const participantToken = await webcamStageManagerRef.current.fetchParticipantToken(
+        username,
+        ['PUBLISH'],
+        STREAM_SOURCE.PARTICIPANT_WEBCAM as 'participant_webcam'
+      );
+
+      // Create LocalStageStream instances for webcam tracks
+      const stageStreams = webcamStageManagerRef.current.createLocalStreams(userMediaStream);
+      
+      // Store references to LocalStageStream objects for muting
+      setWebcamStageStreams(stageStreams);
+
+      // Create and configure the stage
+      const stage = await webcamStageManagerRef.current.createStage({
+        participantToken,
+        streams: stageStreams,
+        onConnectionStateChange: (state) => {
+          console.log('Viewer webcam stage connection state:', state);
+          if (state === StageConnectionState.CONNECTED) {
+            console.log('Successfully connected to webcam stage as publisher');
+            setIsBroadcastingWebcam(true);
+            setIsJoiningAsPublisher(false);
+
+            // Send acceptance message
+            sendInviteAccepted();
+          } else if (state === StageConnectionState.DISCONNECTED) {
+            setIsBroadcastingWebcam(false);
+          }
+        },
+        onError: (error) => {
+          console.error('Viewer webcam stage error:', error);
+          setErrors(prev => [...prev, `Failed to join stream: ${error.message}`]);
+          setIsJoiningAsPublisher(false);
+        }
+      });
+
+      // Join the stage
+      await webcamStageManagerRef.current.joinStage();
+      setWebcamStage(stage);
+
+      console.log('Successfully joined webcam stage as publisher');
+    } catch (error) {
+      console.error('Failed to accept invite:', error);
+      setErrors(prev => [...prev, `Failed to join stream: ${error instanceof Error ? error.message : 'Unknown error'}`]);
+      setIsJoiningAsPublisher(false);
+      setInviterUsername(null);
+      
+      // Send decline message since we failed
+      sendInviteDeclined();
+    }
+  };
+
+  /**
+   * Decline the invite
+   */
+  const declineInvite = async () => {
+    setShowInviteModal(false);
+    await sendInviteDeclined();
+    setInviterUsername(null);
+  };
+
+  /**
+   * Send invite accepted message
+   */
+  const sendInviteAccepted = async () => {
+    try {
+      const acceptMessage = {
+        action: 'VIEWER_INVITE_ACCEPTED',
+        invitedUsername: username,
+        timestamp: Date.now()
+      };
+
+      await (chatClient as any).publishRaw(acceptMessage);
+      console.log('Sent invite accepted message');
+    } catch (error) {
+      console.error('Failed to send invite accepted message:', error);
+    }
+  };
+
+  /**
+   * Send invite declined message
+   */
+  const sendInviteDeclined = async () => {
+    try {
+      const declineMessage = {
+        action: 'VIEWER_INVITE_DECLINED',
+        invitedUsername: username,
+        timestamp: Date.now()
+      };
+
+      await (chatClient as any).publishRaw(declineMessage);
+      console.log('Sent invite declined message');
+    } catch (error) {
+      console.error('Failed to send invite declined message:', error);
+    }
+  };
+
+  /**
+   * Leave the webcam stage and notify the player
+   */
+  const leaveWebcamStage = async () => {
+    try {
+      // Send left stage message
+      const leftMessage = {
+        action: 'VIEWER_LEFT_STAGE',
+        viewerUsername: username,
+        timestamp: Date.now()
+      };
+
+      await (chatClient as any).publishRaw(leftMessage);
+      console.log('Sent viewer left stage message');
+    } catch (error) {
+      console.error('Failed to send left stage message:', error);
+    }
+
+    // Leave the stage
+    if (webcamStageManagerRef.current.isActive()) {
+      await webcamStageManagerRef.current.leaveStage();
+    }
+
+    // Stop local media tracks
+    if (localWebcamStream) {
+      localWebcamStream.getTracks().forEach(track => track.stop());
+      setLocalWebcamStream(null);
+    }
+
+    // Clear video element
+    if (localWebcamVideoRef.current) {
+      localWebcamVideoRef.current.srcObject = null;
+    }
+
+    setWebcamStage(null);
+    setIsBroadcastingWebcam(false);
+    setInviterUsername(null);
+    setWebcamStageStreams([]);
+    setIsCameraEnabled(true);
+    setIsMicEnabled(true);
+  };
+
+  /**
+   * Toggle webcam camera on/off
+   */
+  const toggleWebcamCamera = () => {
+    if (webcamStageStreams.length === 0) return;
+
+    const newCameraState = !isCameraEnabled;
+    
+    // Find video LocalStageStream and call setMuted
+    webcamStageStreams.forEach((stream: any) => {
+      if (stream.mediaStreamTrack?.kind === 'video') {
+        stream.setMuted(!newCameraState);
+      }
+    });
+    
+    // Refresh stage strategy to apply changes
+    const stage = webcamStageManagerRef.current.getStage();
+    if (stage) {
+      stage.refreshStrategy();
+    }
+    
+    setIsCameraEnabled(newCameraState);
+  };
+
+  /**
+   * Toggle webcam microphone on/off
+   */
+  const toggleWebcamMicrophone = () => {
+    if (webcamStageStreams.length === 0) return;
+
+    const newMicState = !isMicEnabled;
+    
+    // Find audio LocalStageStream and call setMuted
+    webcamStageStreams.forEach((stream: any) => {
+      if (stream.mediaStreamTrack?.kind === 'audio') {
+        stream.setMuted(!newMicState);
+      }
+    });
+    
+    // Refresh stage strategy to apply changes
+    const stage = webcamStageManagerRef.current.getStage();
+    if (stage) {
+      stage.refreshStrategy();
+    }
+    
+    setIsMicEnabled(newMicState);
+  };
+
   // Initialize on mount
   useEffect(() => {
     // Copy refs to variables at effect creation time
     const stageManager = stageManagerRef.current;
+    const webcamManager = webcamStageManagerRef.current;
     const client = chatClient;
     
     // Don't auto-connect - wait for user interaction
@@ -81,6 +383,9 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
     return () => {
       if (stageManager.isActive()) {
         stageManager.leaveStage();
+      }
+      if (webcamManager.isActive()) {
+        webcamManager.leaveStage();
       }
       client.disconnect();
       
@@ -468,6 +773,29 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
           console.log('Streams added:', streams);
           handleStreamsAdded(streams);
         },
+        onParticipantLeft: (participantInfo) => {
+          console.log('Participant left:', participantInfo);
+          const streamSource = participantInfo?.attributes?.stream_source;
+          
+          // Clear the appropriate stream based on what source left
+          if (streamSource === 'gameplay') {
+            setGameplayStream(null);
+            if (gameplayVideoRef.current) {
+              gameplayVideoRef.current.srcObject = null;
+            }
+          } else if (streamSource === 'player_webcam') {
+            setWebcamStream(null);
+            if (webcamVideoRef.current) {
+              webcamVideoRef.current.srcObject = null;
+            }
+          } else if (streamSource === 'participant_webcam') {
+            setParticipantWebcamStream(null);
+            setParticipantWebcamUsername(null);
+            if (participantWebcamVideoRef.current) {
+              participantWebcamVideoRef.current.srcObject = null;
+            }
+          }
+        },
         onError: (error) => {
           console.error('Viewer stage error:', error);
           setErrors(prev => [...prev, `Stage error: ${error.message}`]);
@@ -555,6 +883,34 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
           if (!trackExists) {
             existingMediaStream.addTrack(mediaStreamTrack);
             console.log(`✓ Added ${trackKind} track to webcam stream`);
+          }
+        }
+      } else if (streamSource === 'participant_webcam') {
+        // Handle invited viewer's webcam stream
+        setParticipantWebcamStream(stream);
+        
+        // Get the participant's username from their userId
+        const participantUsername = participantInfo?.userId || 'Viewer';
+        setParticipantWebcamUsername(participantUsername);
+        console.log('Participant webcam from:', participantUsername);
+        
+        // Get or create MediaStream for participant webcam video element
+        if (participantWebcamVideoRef.current) {
+          let existingMediaStream = participantWebcamVideoRef.current.srcObject as MediaStream;
+          
+          if (!existingMediaStream) {
+            // Create new MediaStream if none exists
+            existingMediaStream = new MediaStream();
+            participantWebcamVideoRef.current.srcObject = existingMediaStream;
+          }
+          
+          // Add the track if it's not already present
+          const existingTracks = existingMediaStream.getTracks();
+          const trackExists = existingTracks.some(t => t.id === mediaStreamTrack.id);
+          
+          if (!trackExists) {
+            existingMediaStream.addTrack(mediaStreamTrack);
+            console.log(`✓ Added ${trackKind} track to participant webcam stream`);
           }
         }
       } else {
@@ -845,19 +1201,16 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
 
           {/* Sidebar */}
           <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-            {/* Sidebar Header */}
-            <div className="sidebar-header p-0 mb-3">
-              <button
-                className="collapse-btn border-0 bg-transparent"
-                onClick={() => setIsSidebarCollapsed(true)}
-                title="Hide chat"
-                >
-                <i className="bi bi-chevron-right"></i>
-              </button>
-            </div>
-
             {/* Webcam Area (Area 2) */}
             <div className="webcam-video-container video-container">
+              {/* Collapse Sidebar Button */}
+              <button
+                className="collapse-sidebar-btn"
+                onClick={() => setIsSidebarCollapsed(true)}
+                title="Hide chat"
+              >
+                <i className="bi bi-chevron-right"></i>
+              </button>
               {/* Broadcast Status Indicator */}
               <div className="broadcast-status">
                 <div className={`status-dot ${webcamStream ? '' : 'inactive'}`}></div>
@@ -888,12 +1241,144 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
               )}
             </div>
 
+            {/* Participant Webcam - shown when another viewer is broadcasting */}
+            {participantWebcamStream && !isBroadcastingWebcam && (
+              <div className="participant-webcam-video-container video-container">
+                {/* Broadcast Status Indicator */}
+                <div className="broadcast-status">
+                  <div className="status-dot"></div>
+                  <span>{participantWebcamUsername || 'Viewer'} - LIVE</span>
+                </div>
+
+                {/* Participant Webcam Video */}
+                <video
+                  ref={participantWebcamVideoRef}
+                  autoPlay
+                  playsInline
+                />
+
+                {/* Volume Control for Participant Webcam Stream */}
+                {isConnected && participantWebcamStream && (
+                  <VolumeControl
+                    mediaElement={participantWebcamVideoRef.current}
+                    initialVolume={1}
+                    className="participant-webcam-volume-control"
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Local Webcam Preview - shown when viewer is broadcasting */}
+            {isBroadcastingWebcam && (
+              <div className="local-webcam-video-container video-container">
+                {/* Status Indicator */}
+                <div className="broadcast-status">
+                  <div className="status-dot"></div>
+                  <span>You - LIVE</span>
+                </div>
+
+                {/* Local Webcam Video */}
+                <video
+                  ref={localWebcamVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                />
+
+                {/* Media Controls */}
+                <div className="media-controls" role="group" aria-label="Media controls">
+                  <button
+                    className={`media-control-btn ${!isCameraEnabled ? 'muted' : ''}`}
+                    onClick={toggleWebcamCamera}
+                    title={isCameraEnabled ? 'Turn off camera' : 'Turn on camera'}
+                    aria-label={isCameraEnabled ? 'Turn off camera' : 'Turn on camera'}
+                    aria-pressed={isCameraEnabled}
+                  >
+                    <i className={`bi ${isCameraEnabled ? 'bi-camera-video-fill' : 'bi-camera-video-off-fill'}`} aria-hidden="true"></i>
+                  </button>
+                  <button
+                    className={`media-control-btn ${!isMicEnabled ? 'muted' : ''}`}
+                    onClick={toggleWebcamMicrophone}
+                    title={isMicEnabled ? 'Mute microphone' : 'Unmute microphone'}
+                    aria-label={isMicEnabled ? 'Mute microphone' : 'Unmute microphone'}
+                    aria-pressed={isMicEnabled}
+                  >
+                    <i className={`bi ${isMicEnabled ? 'bi-mic-fill' : 'bi-mic-mute-fill'}`} aria-hidden="true"></i>
+                  </button>
+                </div>
+
+                {/* Leave Button */}
+                <button
+                  className="leave-stage-btn"
+                  onClick={leaveWebcamStage}
+                  title="Leave stream"
+                  aria-label="Leave stream"
+                >
+                  <i className="bi bi-box-arrow-right"></i>
+                </button>
+              </div>
+            )}
+
+            {/* Joining as Publisher Loading */}
+            {isJoiningAsPublisher && (
+              <div className="local-webcam-video-container video-container">
+                <div className="loading-overlay">
+                  <div className="spinner"></div>
+                  <div>Joining stream...</div>
+                </div>
+              </div>
+            )}
+
             {/* Chat Area (Area 3) */}
             <div className="chat-container">
               <ChatComponent username={username} chatClient={chatClient} isSidebarCollapsed={isSidebarCollapsed} />
             </div>
           </div>
         </div>
+
+        {/* Viewer Invite Modal */}
+        {showInviteModal && (
+          <div 
+            className="modal show d-block modal-backdrop-dark" 
+            tabIndex={-1} 
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="invite-modal-title"
+            aria-describedby="invite-modal-description"
+          >
+            <div className="modal-dialog" ref={inviteModalRef}>
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title" id="invite-modal-title">Stream Invitation</h5>
+                </div>
+                <div className="modal-body">
+                  <p id="invite-modal-description">
+                    <strong>{inviterUsername}</strong> is inviting you to join their stream!
+                  </p>
+                  <p className="text-muted small">
+                    If you accept, your camera and microphone will be shared with the stream.
+                  </p>
+                </div>
+                <div className="modal-footer">
+                  <button 
+                    className="btn btn-success" 
+                    onClick={acceptInvite}
+                    aria-label={`Accept invitation from ${inviterUsername}`}
+                  >
+                    <i className="bi bi-camera-video-fill"></i> Accept
+                  </button>
+                  <button 
+                    className="btn btn-danger" 
+                    onClick={declineInvite}
+                    aria-label={`Decline invitation from ${inviterUsername}`}
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

@@ -473,3 +473,63 @@ Remove rounded corners for off-canvas mode */
 .chat-component.no-rounded-corners {
   border-radius: 0;
 }
+
+
+/* Message User Container - for invite button positioning */
+.message-user-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Invite Viewer Button */
+.invite-viewer-btn {
+  background: none;
+  border: none;
+  color: #4ecdc4;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  animation: fadeIn 0.15s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.invite-viewer-btn:hover {
+  background-color: rgba(78, 205, 196, 0.2);
+  color: #5fe0d7;
+  transform: scale(1.1);
+}
+
+.invite-viewer-btn:active {
+  transform: scale(0.95);
+}
+
+/* Invited Badge */
+.invited-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4ecdc4;
+  font-size: 12px;
+  padding: 2px 4px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.invited-badge i {
+  color: #4ecdc4;
+}

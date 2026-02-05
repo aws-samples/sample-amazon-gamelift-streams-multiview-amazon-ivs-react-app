@@ -476,7 +476,7 @@ export class AppSyncChatClient {
                 } else {
                   console.warn('Received malformed chat message, ignoring:', parsedEvent);
                 }
-              } else if (parsedEvent.action && parsedEvent.action.startsWith('TAKEOVER_')) {
+              } else if (parsedEvent.action && (parsedEvent.action.startsWith('TAKEOVER_') || parsedEvent.action.startsWith('VIEWER_'))) {
                 // Validate and route to control message handlers
                 if (this.isValidControlMessage(parsedEvent)) {
                   this.notifyControlMessageHandlers(parsedEvent as ControlMessage);
@@ -553,6 +553,20 @@ export class AppSyncChatClient {
       case 'TAKEOVER_CANCELLED':
         // These messages only need action and timestamp
         return true;
+
+      // Viewer invite control messages
+      case 'VIEWER_INVITE':
+        return typeof message.inviterUsername === 'string' && typeof message.invitedUsername === 'string';
+
+      case 'VIEWER_INVITE_ACCEPTED':
+      case 'VIEWER_INVITE_DECLINED':
+        return typeof message.invitedUsername === 'string';
+
+      case 'VIEWER_INVITE_CANCELLED':
+        return typeof message.inviterUsername === 'string';
+
+      case 'VIEWER_LEFT_STAGE':
+        return typeof message.viewerUsername === 'string';
 
       default:
         // Unknown control message type

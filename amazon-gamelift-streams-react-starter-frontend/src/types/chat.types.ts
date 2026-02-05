@@ -34,11 +34,43 @@ export interface TakeoverCancelledMessage extends BaseControlMessage {
   action: 'TAKEOVER_CANCELLED';
 }
 
+// Viewer Invite Control Messages
+export interface ViewerInviteMessage extends BaseControlMessage {
+  action: 'VIEWER_INVITE';
+  inviterUsername: string;
+  invitedUsername: string;
+}
+
+export interface ViewerInviteAcceptedMessage extends BaseControlMessage {
+  action: 'VIEWER_INVITE_ACCEPTED';
+  invitedUsername: string;
+}
+
+export interface ViewerInviteDeclinedMessage extends BaseControlMessage {
+  action: 'VIEWER_INVITE_DECLINED';
+  invitedUsername: string;
+}
+
+export interface ViewerInviteCancelledMessage extends BaseControlMessage {
+  action: 'VIEWER_INVITE_CANCELLED';
+  inviterUsername: string;
+}
+
+export interface ViewerLeftStageMessage extends BaseControlMessage {
+  action: 'VIEWER_LEFT_STAGE';
+  viewerUsername: string;
+}
+
 export type ControlMessage =
   | TakeoverRequestMessage
   | TakeoverApprovedMessage
   | TakeoverDeniedMessage
-  | TakeoverCancelledMessage;
+  | TakeoverCancelledMessage
+  | ViewerInviteMessage
+  | ViewerInviteAcceptedMessage
+  | ViewerInviteDeclinedMessage
+  | ViewerInviteCancelledMessage
+  | ViewerLeftStageMessage;
 
 export type ControlMessageHandler = (message: ControlMessage) => void;
 
@@ -81,12 +113,69 @@ export function isTakeoverCancelledMessage(message: any): message is TakeoverCan
   );
 }
 
+// Type Guards for Viewer Invite Messages
+export function isViewerInviteMessage(message: any): message is ViewerInviteMessage {
+  return (
+    message &&
+    typeof message === 'object' &&
+    message.action === 'VIEWER_INVITE' &&
+    typeof message.inviterUsername === 'string' &&
+    typeof message.invitedUsername === 'string' &&
+    typeof message.timestamp === 'number'
+  );
+}
+
+export function isViewerInviteAcceptedMessage(message: any): message is ViewerInviteAcceptedMessage {
+  return (
+    message &&
+    typeof message === 'object' &&
+    message.action === 'VIEWER_INVITE_ACCEPTED' &&
+    typeof message.invitedUsername === 'string' &&
+    typeof message.timestamp === 'number'
+  );
+}
+
+export function isViewerInviteDeclinedMessage(message: any): message is ViewerInviteDeclinedMessage {
+  return (
+    message &&
+    typeof message === 'object' &&
+    message.action === 'VIEWER_INVITE_DECLINED' &&
+    typeof message.invitedUsername === 'string' &&
+    typeof message.timestamp === 'number'
+  );
+}
+
+export function isViewerInviteCancelledMessage(message: any): message is ViewerInviteCancelledMessage {
+  return (
+    message &&
+    typeof message === 'object' &&
+    message.action === 'VIEWER_INVITE_CANCELLED' &&
+    typeof message.inviterUsername === 'string' &&
+    typeof message.timestamp === 'number'
+  );
+}
+
+export function isViewerLeftStageMessage(message: any): message is ViewerLeftStageMessage {
+  return (
+    message &&
+    typeof message === 'object' &&
+    message.action === 'VIEWER_LEFT_STAGE' &&
+    typeof message.viewerUsername === 'string' &&
+    typeof message.timestamp === 'number'
+  );
+}
+
 export function isControlMessage(message: any): message is ControlMessage {
   return (
     isTakeoverRequestMessage(message) ||
     isTakeoverApprovedMessage(message) ||
     isTakeoverDeniedMessage(message) ||
-    isTakeoverCancelledMessage(message)
+    isTakeoverCancelledMessage(message) ||
+    isViewerInviteMessage(message) ||
+    isViewerInviteAcceptedMessage(message) ||
+    isViewerInviteDeclinedMessage(message) ||
+    isViewerInviteCancelledMessage(message) ||
+    isViewerLeftStageMessage(message)
   );
 }
 
