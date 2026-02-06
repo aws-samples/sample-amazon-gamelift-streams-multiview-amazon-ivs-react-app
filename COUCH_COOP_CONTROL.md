@@ -6,10 +6,10 @@ This feature allows viewers to spawn and control couch co-op players in supporte
 
 The Couch Co-op Control system enables real-time viewer participation in gameplay streams. When enabled and the game supports it, viewers can:
 
--   Spawn a couch co-op player character in the game
--   Control the player using arrow keys (movement) and spacebar (jump)
--   See visual feedback for control status
--   Automatically despawn after a configurable period of inactivity
+- Spawn a couch co-op player character in the game
+- Control the player using arrow keys (movement) and spacebar (jump)
+- See visual feedback for control status
+- Automatically despawn after a configurable period of inactivity
 
 ## Configuration
 
@@ -100,11 +100,11 @@ The system sends the following event types:
 
 ### Supported Keys
 
--   `ArrowUp` - Move forward
--   `ArrowDown` - Move backward
--   `ArrowLeft` - Move left
--   `ArrowRight` - Move right
--   `" "` (space) - Jump
+- `ArrowUp` - Move forward
+- `ArrowDown` - Move backward
+- `ArrowLeft` - Move left
+- `ArrowRight` - Move right
+- `" "` (space) - Jump
 
 Multiple keys can be pressed simultaneously for diagonal movement and jumping while moving.
 
@@ -121,9 +121,9 @@ Multiple keys can be pressed simultaneously for diagonal movement and jumping wh
 
 ### UI Elements
 
--   **Join Button**: Small, semi-transparent controller icon in top-left corner (only shown for supported games)
--   **Status Indicator**: Shows control state in top-right area
--   **Focus Outline**: Blue outline appears when gameplay area has keyboard focus
+- **Join Button**: Small, semi-transparent controller icon in top-left corner (only shown for supported games)
+- **Status Indicator**: Shows control state in top-right area
+- **Focus Outline**: Blue outline appears when gameplay area has keyboard focus
 
 ## Technical Implementation
 
@@ -136,39 +136,39 @@ Multiple keys can be pressed simultaneously for diagonal movement and jumping wh
 
 ### Performance Considerations
 
--   **Rate Limiting**: 20 messages/second maximum (leaves buffer under AppSync's 25/second limit)
--   **Efficient Updates**: Only sends messages when keys are pressed
--   **Memory Management**: Proper cleanup of timers and event listeners
+- **Rate Limiting**: 20 messages/second maximum (leaves buffer under AppSync's 25/second limit)
+- **Efficient Updates**: Only sends messages when keys are pressed
+- **Memory Management**: Proper cleanup of timers and event listeners
 
 ### Error Handling
 
--   Graceful degradation if AppSync connection fails
--   Console logging for debugging
--   User-friendly error messages for connection issues
+- Graceful degradation if AppSync connection fails
+- Console logging for debugging
+- User-friendly error messages for connection issues
 
 ## Limitations
 
 ### Current Implementation
 
--   **AppSync RPS Limit**: Limited to 25 requests per second per client connection
--   **Single Channel**: All viewers share the same AppSync channel
--   **No Persistence**: Player state is not saved between sessions
--   **Basic Controls**: Limited to arrow keys and spacebar
+- **AppSync RPS Limit**: Limited to 25 requests per second per client connection
+- **Single Channel**: All viewers share the same AppSync channel
+- **No Persistence**: Player state is not saved between sessions
+- **Basic Controls**: Limited to arrow keys and spacebar
 
 ### Potential Improvements
 
 The 25 RPS limitation could be improved by using alternative pub/sub solutions:
 
--   **Amazon Kinesis Data Streams**: Higher throughput for real-time messaging
--   **WebSocket Connections**: Direct real-time communication
--   **Any Third-Party Provider**: Bring your own!
+- **Amazon Kinesis Data Streams**: Higher throughput for real-time messaging
+- **WebSocket Connections**: Direct real-time communication
+- **Any Third-Party Provider**: Bring your own!
 
 ## Security Considerations
 
--   **Input Validation**: All keyboard inputs are validated before processing
--   **Rate Limiting**: Built-in protection against message flooding
--   **User Identification**: Each player is uniquely identified by viewer username
--   **Timeout Protection**: Automatic cleanup prevents abandoned players
+- **Input Validation**: All keyboard inputs are validated before processing
+- **Rate Limiting**: Built-in protection against message flooding
+- **User Identification**: Each player is uniquely identified by viewer username
+- **Timeout Protection**: Automatic cleanup prevents abandoned players
 
 ## Troubleshooting
 
@@ -184,23 +184,23 @@ The 25 RPS limitation could be improved by using alternative pub/sub solutions:
 
 Enable detailed logging by checking browser console for:
 
--   `Sent SPAWN_PLAYER event`
--   `Sent MOVE_PLAYER event`
--   `Sent DESPAWN_PLAYER event`
--   AppSync connection status messages
+- `Sent SPAWN_PLAYER event`
+- `Sent MOVE_PLAYER event`
+- `Sent DESPAWN_PLAYER event`
+- AppSync connection status messages
 
 ## Future Enhancements
 
 Potential features for future development:
 
--   **Configurable Controls**: Custom key bindings
--   **Player Customization**: Avatar colors, names, accessories
--   **Spectator Mode**: Watch-only mode before spawning
--   **Player Limits**: Maximum concurrent remote players
--   **Advanced Movement**: Continuous movement, mouse look
--   **Game-Specific Actions**: Context-sensitive controls per game
--   **Persistence**: Save player progress and state
--   **Social Features**: Player chat, emotes, reactions
+- **Configurable Controls**: Custom key bindings
+- **Player Customization**: Avatar colors, names, accessories
+- **Spectator Mode**: Watch-only mode before spawning
+- **Player Limits**: Maximum concurrent remote players
+- **Advanced Movement**: Continuous movement, mouse look
+- **Game-Specific Actions**: Context-sensitive controls per game
+- **Persistence**: Save player progress and state
+- **Social Features**: Player chat, emotes, reactions
 
 ## Development Setup
 
@@ -208,7 +208,7 @@ To test the remote player control feature:
 
 1. Enable the feature flag in `constants.ts`
 2. Ensure Unity game has remote player components implemented
-3. Configure AppSync credentials for your environment
+3. Ensure AppSync credentials are configured in SSM Parameter Store (automatically handled by CDK deployment)
 4. Test with multiple browser tabs to simulate multiple viewers
 5. Monitor AppSync metrics for message delivery and rate limiting
 

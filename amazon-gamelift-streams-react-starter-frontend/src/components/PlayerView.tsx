@@ -17,7 +17,8 @@ import { ChatComponent } from './ChatComponent';
 import { VolumeControl } from './VolumeControl';
 import { SettingsModal } from './SettingsModal';
 import { generateUsername } from '../utils/usernameGenerator';
-import { APPSYNC_CONFIG, STREAM_SOURCE, GAMELIFT_STREAMS_CONFIG, IVS_WHIP_ENDPOINT, ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST } from '../utils/constants';
+import { STREAM_SOURCE, GAMELIFT_STREAMS_CONFIG, IVS_WHIP_ENDPOINT, ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST } from '../utils/constants';
+import { getAppSyncConfig, getRuntimeConfig } from '../utils/configService';
 import { ControlMessage, isViewerInviteAcceptedMessage, isViewerInviteDeclinedMessage, isViewerLeftStageMessage } from '../types/chat.types';
 import { RemoteStageStream } from '../types/ivs.types';
 import './Views.css';
@@ -151,7 +152,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
   const webcamStageManagerRef = useRef<IVSStageManager>(new IVSStageManager());
 
   // Chat Client
-  const [chatClient] = useState(() => new AppSyncChatClient(APPSYNC_CONFIG));
+  const [chatClient] = useState(() => new AppSyncChatClient(getAppSyncConfig()));
 
   // Handle control messages for viewer invites
   const handleControlMessage = (message: ControlMessage) => {
@@ -926,13 +927,14 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
    */
   const sendAppSyncConfigToGame = () => {
     try {
+      const appSyncConfig = getAppSyncConfig();
       const config = {
         type: 'AWS_APPSYNC_CONFIG',
         message: {
-          appSyncApiKey: APPSYNC_CONFIG.apiKey,
-          appSyncHttpApiEndpoint: APPSYNC_CONFIG.httpEndpoint.replace('https://', ''),
-          appSyncRealtimeEndpoint: APPSYNC_CONFIG.realtimeEndpoint,
-          channelName: APPSYNC_CONFIG.channelName
+          appSyncApiKey: appSyncConfig.apiKey,
+          appSyncHttpApiEndpoint: appSyncConfig.httpEndpoint.replace('https://', ''),
+          appSyncRealtimeEndpoint: appSyncConfig.realtimeEndpoint,
+          channelName: appSyncConfig.channelName
         }
       };
 

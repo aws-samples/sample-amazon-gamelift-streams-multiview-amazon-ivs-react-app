@@ -1,6 +1,8 @@
 /**
  * Application Constants Template
- * Contains configuration for AppSync, IVS, Cognito, and UI styling
+ * Contains non-sensitive configuration for IVS, Cognito, GameLift Streams, and UI styling.
+ * Sensitive values (AppSync credentials, stream keys) are stored in AWS Systems Manager
+ * Parameter Store and fetched at runtime via the /config API endpoint.
  * 
  * INSTRUCTIONS:
  * 1. Copy this file to constants.ts in the same directory
@@ -22,13 +24,10 @@ export const API_CONFIG = {
 };
 
 // AppSync Event API Configuration
-// Get these values from the AmazonGameliftStreamsReactStarterIVSStack deployment outputs
-export const APPSYNC_CONFIG = {
-  apiKey: 'YOUR_APPSYNC_API_KEY', // From AppSync-Event-API-Key output
-  httpEndpoint: 'https://YOUR_API_ID.appsync-api.YOUR_REGION.amazonaws.com', // From AppSync-HTTP-Endpoint output
-  realtimeEndpoint: 'YOUR_API_ID.appsync-realtime-api.YOUR_REGION.amazonaws.com', // From AppSync-Realtime-Endpoint output
-  channelName: '/default/YOUR_API_ID' // From AppSync-Channel-Namespace output
-};
+// Sensitive AppSync values (apiKey, endpoints, channelName) are stored in
+// AWS Systems Manager Parameter Store and fetched at runtime via the /config API endpoint.
+// See utils/configService.ts for the runtime config service.
+// No manual configuration of AppSync values is required.
 
 // GameLift Streams Configuration
 // Configure multiple games with descriptive names for easy selection

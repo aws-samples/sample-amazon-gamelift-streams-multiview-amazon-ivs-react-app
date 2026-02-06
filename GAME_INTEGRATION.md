@@ -6,10 +6,10 @@ This guide demonstrates how to integrate AWS AppSync Event API directly from you
 
 The AWS AppSync Event API used for viewer chat and reactions in the web frontend can also be accessed directly from your game client. This enables bidirectional communication where:
 
--   Viewers send chat messages and reactions through the web interface
--   Your game receives these events in real-time via WebSocket
--   Game logic responds to viewer input (spawning items, triggering effects, etc.)
--   Game can publish events back to viewers
+- Viewers send chat messages and reactions through the web interface
+- Your game receives these events in real-time via WebSocket
+- Game logic responds to viewer input (spawning items, triggering effects, etc.)
+- Game can publish events back to viewers
 
 ## Architecture
 
@@ -42,13 +42,15 @@ Your game needs these AppSync configuration values (same as the web frontend):
 }
 ```
 
+These values are stored in AWS Systems Manager Parameter Store and served to the frontend at runtime via the authenticated `/config` API endpoint. The frontend passes them to the game client via the GameLift Data Channel when establishing the stream session.
+
 ### Passing Configuration to Game
 
 You can pass these values to your game client through:
 
--   **GameLift Data Channel**: Send configuration when establishing the stream session (recommended) - see [DATA_CHANNEL_INTEGRATION.md](DATA_CHANNEL_INTEGRATION.md) for implementation details
--   **Environment Variables**: Configure during game deployment
--   **Configuration File**: Include in game build or download at runtime
+- **GameLift Data Channel**: The frontend automatically sends AppSync configuration to the game when the data channel is established (recommended) - see [DATA_CHANNEL_INTEGRATION.md](DATA_CHANNEL_INTEGRATION.md) for implementation details
+- **Environment Variables**: Configure during game deployment
+- **Configuration File**: Include in game build or download at runtime
 
 ## Implementation Example (Unity/C#)
 
@@ -402,27 +404,27 @@ if (Time.time - lastSpawnTime > SPAWN_COOLDOWN)
 
 ### Connection Management
 
--   Implement automatic reconnection on disconnect
--   Handle scene transitions gracefully
--   Store configuration persistently across scenes
+- Implement automatic reconnection on disconnect
+- Handle scene transitions gracefully
+- Store configuration persistently across scenes
 
 ### Performance
 
--   Process events on the main thread
--   Batch multiple reactions into single game actions
--   Use object pooling for spawned items
+- Process events on the main thread
+- Batch multiple reactions into single game actions
+- Use object pooling for spawned items
 
 ### Game Balance
 
--   Set reasonable thresholds for viewer-triggered actions
--   Implement cooldowns to prevent overwhelming the game
--   Consider viewer count when scaling effects
+- Set reasonable thresholds for viewer-triggered actions
+- Implement cooldowns to prevent overwhelming the game
+- Consider viewer count when scaling effects
 
 ### Security
 
--   Validate all incoming data
--   Sanitize chat messages before display
--   Rate-limit viewer actions server-side
+- Validate all incoming data
+- Sanitize chat messages before display
+- Rate-limit viewer actions server-side
 
 ## Testing
 
@@ -445,27 +447,27 @@ Use the web frontend's Demo Mode to generate test events:
 
 **Connection Issues**
 
--   Verify AppSync endpoints and API key are correct
--   Check WebSocket protocol headers match AppSync requirements
--   Ensure authorization header is properly base64-encoded
+- Verify AppSync endpoints and API key are correct
+- Check WebSocket protocol headers match AppSync requirements
+- Ensure authorization header is properly base64-encoded
 
 **Events Not Received**
 
--   Confirm subscription to correct channel name
--   Check WebSocket connection state
--   Verify message parsing logic
+- Confirm subscription to correct channel name
+- Check WebSocket connection state
+- Verify message parsing logic
 
 **Performance Issues**
 
--   Implement event batching
--   Add cooldowns between actions
--   Use object pooling for frequently spawned items
+- Implement event batching
+- Add cooldowns between actions
+- Use object pooling for frequently spawned items
 
 ## Additional Resources
 
--   [AWS AppSync Event API Documentation](https://docs.aws.amazon.com/appsync/latest/eventapi/what-is-event-api.html)
--   [WebSocket Protocol Specification](https://datatracker.ietf.org/doc/html/rfc6455)
--   [GameLift Streams Developer Guide](https://docs.aws.amazon.com/gameliftstreams/latest/developerguide/)
+- [AWS AppSync Event API Documentation](https://docs.aws.amazon.com/appsync/latest/eventapi/what-is-event-api.html)
+- [WebSocket Protocol Specification](https://datatracker.ietf.org/doc/html/rfc6455)
+- [GameLift Streams Developer Guide](https://docs.aws.amazon.com/gameliftstreams/latest/developerguide/)
 
 ## Next Steps
 

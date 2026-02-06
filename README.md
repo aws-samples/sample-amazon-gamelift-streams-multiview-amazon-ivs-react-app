@@ -50,7 +50,9 @@ The Application is deployed through 3 CDK stacks:
     1. Amazon IVS Real-Time Stage for real-time video streaming
     2. AppSync Event API for real-time chat and reactions
     3. AppSync API Key and channel namespace configuration
-    4. Integration with the API Gateway from stack 1 for secure token generation
+    4. AWS Systems Manager Parameter Store parameters for sensitive configuration (AppSync credentials, stream keys)
+    5. GetConfig Lambda function that serves sensitive configuration to the frontend at runtime via the `/config` API endpoint
+    6. Integration with the API Gateway from stack 1 for secure token generation and configuration retrieval
 
     **Note:** This stack depends on resources from the API stack and must be deployed after it.
 
@@ -90,25 +92,31 @@ It is important to understand the difference between Amazon GameLift Streams `Pr
     ```bash
     cp amazon-gamelift-streams-react-starter-frontend/src/utils/constants.template.ts amazon-gamelift-streams-react-starter-frontend/src/utils/constants.ts
     ```
-    **Note**: Do not edit `constants.ts` yet - you'll populate it with actual values after deploying the AWS infrastructure in later steps. The `constants.ts` file is excluded from version control to protect sensitive information.
+    **Note**: The `constants.ts` file contains non-sensitive configuration such as Cognito, API Gateway, GameLift Streams, and IVS settings. Sensitive values (AppSync API key, endpoints, and stream keys) are stored securely in AWS Systems Manager Parameter Store and fetched at runtime via a Lambda endpoint. The `constants.ts` file is excluded from version control.
 3. Install Lambda function dependencies by running `npm install` in each Lambda directory:
     ```bash
     cd lambda/StartStream && npm install && cd ../..
     cd lambda/GetStream && npm install && cd ../..
     cd lambda/CreateStreamSessionConnection && npm install && cd ../..
     cd lambda/GetStageToken && npm install && cd ../..
+    cd lambda/GetConfig && npm install && cd ../..
     ```
 4. From the Amazon GameLift Streams getting started page (https://aws.amazon.com/gamelift/streams/getting-started/#Resources), download the latest Amazon GameLift Streams Web SDK bundle. For this sample application you do not need the `GameLiftStreamsSampleGamePublisherService` directory within the downloaded Web SDK bundle, only the other Web SDK files. Copy the three gameliftstreams-version.d.ts, .js, and .mjs files as well as the LICENSE.txt file to the `/amazon-gamelift-streams-react-starter-frontend/src/gamelift-streams-websdk` directory.
 5. Run `cdk bootstrap` if you have not previously deployed infrastructure using cdk into your AWS account. You can find additional information on this process [here](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html).
 6. Run `cdk deploy AmazonGameliftStreamsReactStarterAPIStack` at root level of this repository, to deploy the API and save the resource identifier outputs required for the frontend build.
-7. Run `cdk deploy AmazonGameliftStreamsReactStarterIVSStack` at root level of this repository, to deploy the IVS Real-Time Stage and AppSync Event API. This stack uses the same API Gateway and Cognito from step 6. Save the output values for configuration in the next step.
-8. Update the IVS and AppSync configuration in `/amazon-gamelift-streams-react-starter-frontend/src/utils/constants.ts`:
+7. Run `cdk deploy AmazonGameliftStreamsReactStarterIVSStack` at root level of this repository, to deploy the IVS Real-Time Stage, AppSync Event API, and SSM Parameter Store configuration. This stack uses the same API Gateway and Cognito from step 6. Sensitive configuration values (AppSync API key, endpoints, channel name) are automatically stored in AWS Systems Manager Parameter Store and served to the frontend at runtime via a `/config` API endpoint.
+8. **(Optional) Set the STREAM_KEY for RTMP ingest**: The `STREAM_KEY` parameter is deployed with a placeholder value. If you use RTMP-based broadcasting, set it to your actual stream key via the AWS CLI:
+    ```bash
+    aws ssm put-parameter \
+      --name "/AmazonGameliftStreamsReactStarterIVSStack/secrets/STREAM_KEY" \
+      --value "your-actual-stream-key" \
+      --type String \
+      --overwrite
+    ```
+    This value persists across subsequent `cdk deploy` runs — you only need to set it once. To add additional sensitive configuration values in the future, create new parameters under the same `/AmazonGameliftStreamsReactStarterIVSStack/secrets/` path and they will automatically be served by the `/config` endpoint.
+9. Update the IVS and non-sensitive configuration in `/amazon-gamelift-streams-react-starter-frontend/src/utils/constants.ts`:
     - Update `IVS_CONFIG.stageArn` with the IVS Stage ARN from step 7
-    - Update `APPSYNC_CONFIG.apiKey` with the AppSync Event API Key from step 7
-    - Update `APPSYNC_CONFIG.httpEndpoint` with the AppSync HTTP Endpoint from step 7
-    - Update `APPSYNC_CONFIG.realtimeEndpoint` with the AppSync Realtime Endpoint from step 7
-    - Update `APPSYNC_CONFIG.channelName` with the AppSync Channel Namespace from step 7
-9. Update the API and GameLift Streams configuration in `/amazon-gamelift-streams-react-starter-frontend/src/utils/constants.ts`:
+10. Update the API and GameLift Streams configuration in `/amazon-gamelift-streams-react-starter-frontend/src/utils/constants.ts`:
     - Update `GAMELIFT_STREAMS_CONFIG.gameLibrary` with your GameLift Streams configurations. You can configure multiple games with descriptive names:
         - Each game entry should have a descriptive name as the key (e.g., "Unity Explorer", "My Racing Game")
         - Each game configuration includes `applicationId`, `streamGroupId`, and `supportsDirectBroadcast` properties
@@ -116,10 +124,10 @@ It is important to understand the difference between Amazon GameLift Streams `Pr
         - **Important**: The Interactive Play Testing view only supports games with `supportsDirectBroadcast: true`
     - Update `GAMELIFT_STREAMS_CONFIG.defaultRegion` with your preferred AWS region (default is `us-west-2`)
     - Update `API_CONFIG.endpoint` with the API endpoint from step 6 above. **Ensure that the API endpoint has no trailing slash `/` at the end**.
-10. Within the `/amazon-gamelift-streams-react-starter-frontend` directory, run `npm run build` to build the single page application frontend. Don't forget that if you make changes to your frontend, you need to re-build with `npm run build` before redeploying the frontend cdk stack.
-11. Run `cdk deploy AmazonGameliftStreamsReactStarterFrontendStack` at the root level of this repository, to deploy the web frontend.
-12. Once everything is deployed, you can visit your deployed frontend via the Amazon CloudFront distribution, or while developing on localhost by running `npm start` within the `/amazon-gamelift-streams-react-starter-frontend` directory.
-13. You will need Amazon Cognito users to authenticate into the frontend web page. Create two users in the deployed userpool in the Cognito AWS Console:
+11. Within the `/amazon-gamelift-streams-react-starter-frontend` directory, run `npm run build` to build the single page application frontend. Don't forget that if you make changes to your frontend, you need to re-build with `npm run build` before redeploying the frontend cdk stack.
+12. Run `cdk deploy AmazonGameliftStreamsReactStarterFrontendStack` at the root level of this repository, to deploy the web frontend.
+13. Once everything is deployed, you can visit your deployed frontend via the Amazon CloudFront distribution, or while developing on localhost by running `npm start` within the `/amazon-gamelift-streams-react-starter-frontend` directory.
+14. You will need Amazon Cognito users to authenticate into the frontend web page. Create two users in the deployed userpool in the Cognito AWS Console:
     - `player@ivs.rocks` - For the player role (can stream gameplay and webcam)
     - `viewer@ivs.rocks` - For the viewer role (can watch streams, participate in chat, send reactions)
 
@@ -302,7 +310,7 @@ This automatic broadcasting eliminates manual intervention and ensures that cont
 
 #### GameLift Stream Application and Stream Group
 
-Please follow the instructions of the [Amazon GameLift Streams developer documentation](https://docs.aws.amazon.com/gameliftstreams/). Once you have an Amazon GameLift Streams Application and Stream Group set up, you can test your stream directly in the AWS console to make sure that the stream is working. You can then input your application and stream group IDs into the `constants.ts` configuration file. You can find additional documentation [here](https://docs.aws.amazon.com/gameliftstreams/), and can follow [this blog post](https://aws.amazon.com/blogs/aws/scale-and-deliver-game-streaming-experiences-with-amazon-gamelift-streams/) for a more in depth overview.
+Please follow the instructions of the [Amazon GameLift Streams developer documentation](https://docs.aws.amazon.com/gameliftstreams/). Once you have an Amazon GameLift Streams Application and Stream Group set up, you can test your stream directly in the AWS console to make sure that the stream is working. You can then input your application and stream group IDs into the `GAMELIFT_STREAMS_CONFIG.gameLibrary` section of the `constants.ts` configuration file. You can find additional documentation [here](https://docs.aws.amazon.com/gameliftstreams/), and can follow [this blog post](https://aws.amazon.com/blogs/aws/scale-and-deliver-game-streaming-experiences-with-amazon-gamelift-streams/) for a more in depth overview.
 
 #### IVS Real-Time Stage
 
@@ -310,7 +318,7 @@ The IVS Real-Time Stage is automatically created by the CDK deployment. No addit
 
 #### AppSync Event API
 
-The AppSync Event API for real-time chat and reactions is automatically configured during deployment. The API key, endpoints, and channel namespace are created automatically.
+The AppSync Event API for real-time chat and reactions is automatically configured during deployment. The API key, endpoints, and channel namespace are created automatically and stored in AWS Systems Manager Parameter Store. The frontend retrieves these values securely at runtime via the authenticated `/config` API endpoint — no manual configuration of AppSync values is required.
 
 ## Pricing and Billing
 
@@ -434,6 +442,26 @@ Response Body:
 }
 ```
 
+5. Get Runtime Configuration
+
+```typescript
+GET /config
+Content-Type: application/json
+Authorization: Bearer <cognito-id-token>
+
+Response Body:
+{
+    APPSYNC_API_KEY: string;            // AppSync Event API Key
+    APPSYNC_HTTP_ENDPOINT: string;      // AppSync HTTP endpoint
+    APPSYNC_REALTIME_ENDPOINT: string;  // AppSync Realtime WebSocket endpoint
+    APPSYNC_CHANNEL_NAME: string;       // AppSync channel namespace
+    STREAM_KEY: string;                 // Stream key for RTMP ingest
+    // Additional sensitive values are automatically included
+}
+```
+
+This endpoint retrieves sensitive configuration values stored in AWS Systems Manager Parameter Store. Values are cached in the Lambda for 5 minutes to reduce SSM API calls. The frontend calls this endpoint once after authentication and caches the result for the session lifetime.
+
 ### Authentication Flow
 
 1. Users authenticate through Amazon Cognito User Pool
@@ -490,6 +518,7 @@ The application uses a modern serverless architecture to deliver real-time strea
 - **Role-Based Access**: Different user experiences based on Cognito user identity
 - **API Authentication**: All API calls secured with Cognito JWT tokens
 - **Stage Tokens**: IVS participant tokens generated securely via authenticated Lambda
+- **Sensitive Configuration**: AppSync credentials and stream keys stored in AWS Systems Manager Parameter Store and served via authenticated API endpoint
 - **CORS Protection**: Proper CORS configuration for web application security
 
 ## Multi-Game Configuration
@@ -563,9 +592,10 @@ This sample showcases how to reconnect to a previous stream session after losing
 
 **Chat/Reactions Not Working**
 
-- Verify AppSync configuration in `constants.ts`
+- Verify the `/config` endpoint returns valid AppSync configuration (check browser network tab)
 - Check browser network tab for WebSocket connection errors
-- Ensure AppSync API key is valid and not expired
+- Ensure AppSync API key is valid and not expired (check SSM Parameter Store values)
+- Verify the GetConfig Lambda has permission to read SSM parameters
 
 **General Debugging**
 

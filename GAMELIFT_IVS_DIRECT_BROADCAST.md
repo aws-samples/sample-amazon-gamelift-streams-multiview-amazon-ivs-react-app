@@ -24,11 +24,11 @@ GameLift Instance → IVS Stage → Viewers
 
 ### Key Benefits
 
--   **Lower Viewer Latency**: Eliminates browser capture and re-encoding overhead
--   **Better Quality**: Native streaming from GameLift instance preserves original quality
--   **Reduced Player CPU Usage**: Browser no longer needs to capture and re-encode video
--   **Simplified Architecture**: Direct connection between GameLift and IVS
--   **One-Click Setup**: Single button starts both GameLift stream and IVS broadcast
+- **Lower Viewer Latency**: Eliminates browser capture and re-encoding overhead
+- **Better Quality**: Native streaming from GameLift instance preserves original quality
+- **Reduced Player CPU Usage**: Browser no longer needs to capture and re-encode video
+- **Simplified Architecture**: Direct connection between GameLift and IVS
+- **One-Click Setup**: Single button starts both GameLift stream and IVS broadcast
 
 ## Architecture
 
@@ -193,16 +193,16 @@ When the feature flag is enabled, a new button appears in the Player View settin
 
 **Button States:**
 
--   **Enabled**: When no GameLift stream is running and not currently starting
--   **Disabled**: When `isDirectBroadcastStarting` is true or GameLift stream is already running
--   **Loading**: Shows spinner when `isDirectBroadcastStarting` is true
+- **Enabled**: When no GameLift stream is running and not currently starting
+- **Disabled**: When `isDirectBroadcastStarting` is true or GameLift stream is already running
+- **Loading**: Shows spinner when `isDirectBroadcastStarting` is true
 
 ### Broadcast Status Indicator
 
 The gameplay area displays a status indicator showing:
 
--   **"LIVE - Broadcasting Gameplay"**: When GameLift instance is broadcasting to IVS
--   **"Gameplay Not Broadcasting"**: When no broadcast is active
+- **"LIVE - Broadcasting Gameplay"**: When GameLift instance is broadcasting to IVS
+- **"Gameplay Not Broadcasting"**: When no broadcast is active
 
 ## Implementation Details
 
@@ -216,7 +216,7 @@ The feature generates two separate IVS stage tokens:
 const participantToken = await gameplayStageManagerRef.current.fetchParticipantToken(
     username,
     ['SUBSCRIBE'], // Only subscribe capability
-    STREAM_SOURCE.GAMEPLAY as 'gameplay'
+    STREAM_SOURCE.GAMEPLAY as 'gameplay',
 );
 ```
 
@@ -226,7 +226,7 @@ const participantToken = await gameplayStageManagerRef.current.fetchParticipantT
 const gameLiftPublishToken = await gameplayStageManagerRef.current.fetchParticipantToken(
     username,
     ['PUBLISH'],
-    STREAM_SOURCE.PLAYER_WEBCAM as 'player_webcam'
+    STREAM_SOURCE.PLAYER_WEBCAM as 'player_webcam',
 );
 ```
 
@@ -281,9 +281,9 @@ The feature includes comprehensive error handling with user-friendly messages:
 
 **Causes:**
 
--   IVS token API unavailable
--   Network connectivity issues
--   Invalid stage ARN
+- IVS token API unavailable
+- Network connectivity issues
+- Invalid stage ARN
 
 **Console Logging:**
 
@@ -297,9 +297,9 @@ console.error('Token generation failed:', tokenError);
 
 **Causes:**
 
--   Lambda function rejects environment variables
--   GameLift API errors
--   Invalid configuration
+- Lambda function rejects environment variables
+- GameLift API errors
+- Invalid configuration
 
 **Lambda Error Display:**
 The system extracts and displays error messages from Lambda responses:
@@ -315,10 +315,10 @@ if (errorData.message) {
 
 All errors use the dismissible error banner format:
 
--   Displayed at the top of the player view
--   Shows up to 3 most recent errors
--   Each error has a dismiss button (×)
--   "Clear all" button available when more than 3 errors exist
+- Displayed at the top of the player view
+- Shows up to 3 most recent errors
+- Each error has a dismiss button (×)
+- "Clear all" button available when more than 3 errors exist
 
 ### Console Logging
 
@@ -390,15 +390,15 @@ Error banner: displayed
 
 **Check CloudWatch Logs:**
 
--   Lambda function: `/aws/lambda/StartStream`
--   Look for environment variable validation
--   Check GameLift API responses
+- Lambda function: `/aws/lambda/StartStream`
+- Look for environment variable validation
+- Check GameLift API responses
 
 **Check Network Tab:**
 
--   POST request to `/` with `AdditionalEnvironmentVariables`
--   Verify request body includes IVS credentials
--   Check response status and body
+- POST request to `/` with `AdditionalEnvironmentVariables`
+- Verify request body includes IVS credentials
+- Check response status and body
 
 ## Troubleshooting
 
@@ -472,12 +472,12 @@ See [GAME_INTEGRATION.md](./GAME_INTEGRATION.md) for more details on game client
 
 ## Related Documentation
 
--   [Main README](./README.md) - Complete application setup and deployment
--   [Game Integration Guide](./GAME_INTEGRATION.md) - Integrate viewer interactions into your game
--   [Data Channel Integration](./DATA_CHANNEL_INTEGRATION.md) - Use GameLift data channels
--   [Amazon GameLift Streams Documentation](https://docs.aws.amazon.com/gameliftstreams/)
--   [Amazon IVS Real-Time Stages Documentation](https://docs.aws.amazon.com/ivs/latest/RealTimeUserGuide/)
--   [WebRTC WHIP Protocol](https://datatracker.ietf.org/doc/html/draft-ietf-wish-whip)
+- [Main README](./README.md) - Complete application setup and deployment
+- [Game Integration Guide](./GAME_INTEGRATION.md) - Integrate viewer interactions into your game
+- [Data Channel Integration](./DATA_CHANNEL_INTEGRATION.md) - Use GameLift data channels
+- [Amazon GameLift Streams Documentation](https://docs.aws.amazon.com/gameliftstreams/)
+- [Amazon IVS Real-Time Stages Documentation](https://docs.aws.amazon.com/ivs/latest/RealTimeUserGuide/)
+- [WebRTC WHIP Protocol](https://datatracker.ietf.org/doc/html/draft-ietf-wish-whip)
 
 ## Support
 
@@ -486,7 +486,7 @@ For issues or questions:
 1. Check the [Troubleshooting](#troubleshooting) section
 2. Review CloudWatch logs for detailed error information
 3. Check browser console for client-side errors
-4. Verify all configuration values in `constants.ts`
+4. Verify non-sensitive configuration values in `constants.ts` and sensitive values in SSM Parameter Store
 5. Ensure all CDK stacks are properly deployed
 
 ## License

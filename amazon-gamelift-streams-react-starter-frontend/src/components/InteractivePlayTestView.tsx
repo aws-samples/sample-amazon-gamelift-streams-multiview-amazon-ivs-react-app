@@ -18,7 +18,8 @@ import { ChatComponent } from './ChatComponent';
 import { VolumeControl } from './VolumeControl';
 import { SettingsModal } from './SettingsModal';
 import { generateUsername } from '../utils/usernameGenerator';
-import { APPSYNC_CONFIG, STREAM_SOURCE, GAMELIFT_STREAMS_CONFIG, ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST, IVS_WHIP_ENDPOINT } from '../utils/constants';
+import { STREAM_SOURCE, GAMELIFT_STREAMS_CONFIG, ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST, IVS_WHIP_ENDPOINT } from '../utils/constants';
+import { getAppSyncConfig, getRuntimeConfig } from '../utils/configService';
 import { RemoteStageStream } from '../types/ivs.types';
 import { ControlMessage } from '../types/chat.types';
 import './PlayTestViews.css';
@@ -189,7 +190,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
   const liveRegionRef = useRef<HTMLDivElement>(null);
 
   // Chat Client
-  const [chatClient] = useState(() => new AppSyncChatClient(APPSYNC_CONFIG));
+  const [chatClient] = useState(() => new AppSyncChatClient(getAppSyncConfig()));
 
   // Track unread messages when chat is closed
   useEffect(() => {
@@ -508,13 +509,14 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
 
   const sendAppSyncConfigToGame = () => {
     try {
+      const appSyncConfig = getAppSyncConfig();
       const config = {
         type: 'AWS_APPSYNC_CONFIG',
         message: {
-          appSyncApiKey: APPSYNC_CONFIG.apiKey,
-          appSyncHttpApiEndpoint: APPSYNC_CONFIG.httpEndpoint.replace('https://', ''),
-          appSyncRealtimeEndpoint: APPSYNC_CONFIG.realtimeEndpoint,
-          channelName: APPSYNC_CONFIG.channelName
+          appSyncApiKey: appSyncConfig.apiKey,
+          appSyncHttpApiEndpoint: appSyncConfig.httpEndpoint.replace('https://', ''),
+          appSyncRealtimeEndpoint: appSyncConfig.realtimeEndpoint,
+          channelName: appSyncConfig.channelName
         }
       };
 

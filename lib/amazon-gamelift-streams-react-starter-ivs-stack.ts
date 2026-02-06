@@ -11,6 +11,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as log from 'aws-cdk-lib/aws-logs';
 import * as appsync from 'aws-cdk-lib/aws-appsync';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 
 export interface IVSStackProps extends cdk.StackProps {
   userPool: cognito.IUserPool;
@@ -110,9 +111,104 @@ export class AmazonGameliftStreamsReactStarterIVSStack extends cdk.Stack {
       description: 'AppSync Event API default channel namespace'
     });
 
+    // ---------------------------------------------------------------
+    // SSM Parameter Store: Sensitive configuration values
+    // ---------------------------------------------------------------
+    const ssmParameterPath = `/${this.stackName}/secrets`;
+
+    new ssm.StringParameter(this, 'ssm-appsync-api-key', {
+      parameterName: `${ssmParameterPath}/APPSYNC_API_KEY`,
+      stringValue: apiKey ? apiKey.attrApiKey : 'NO_KEY',
+      description: 'AppSync Event API Key',
+      tier: ssm.ParameterTier.STANDARD,
+    });
+
+    new ssm.StringParameter(this, 'ssm-appsync-http-endpoint', {
+      parameterName: `${ssmParameterPath}/APPSYNC_HTTP_ENDPOINT`,
+      stringValue: `https://${eventApi.httpDns}`,
+      description: 'AppSync HTTP endpoint',
+      tier: ssm.ParameterTier.STANDARD,
+    });
+
+    new ssm.StringParameter(this, 'ssm-appsync-realtime-endpoint', {
+      parameterName: `${ssmParameterPath}/APPSYNC_REALTIME_ENDPOINT`,
+      stringValue: eventApi.realtimeDns,
+      description: 'AppSync Realtime WebSocket endpoint',
+      tier: ssm.ParameterTier.STANDARD,
+    });
+
+    new ssm.StringParameter(this, 'ssm-appsync-channel-name', {
+      parameterName: `${ssmParameterPath}/APPSYNC_CHANNEL_NAME`,
+      stringValue: `/default/${eventApi.apiId}`,
+      description: 'AppSync Event API default channel namespace',
+      tier: ssm.ParameterTier.STANDARD,
+    });
+
+    new ssm.StringParameter(this, 'ssm-stream-key', {
+      parameterName: `${ssmParameterPath}/STREAM_KEY`,
+      stringValue: 'placeholder-set-via-console-or-cli',
+      description: 'Stream key for RTMP ingest. Update this value via AWS Console or CLI after deployment.',
+      tier: ssm.ParameterTier.STANDARD,
+    });
+
+    // ---------------------------------------------------------------
+    // GetConfig Lambda: Serves sensitive config to the frontend
+    // ---------------------------------------------------------------
+    const getConfigLogGroup = new log.LogGroup(this, 'gamelift-streams-get-config-log-group', {
+      logGroupName: `/aws/lambda/${this.stackName}-get-config`,
+      retention: log.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    const getConfigLambda = new lambda.Function(this, 'gamelift-streams-get-config-lambda', {
+      runtime: lambda.Runtime.NODEJS_22_X,
+      handler: 'GetConfig.handler',
+      code: lambda.Code.fromAsset('lambda/GetConfig'),
+      timeout: cdk.Duration.seconds(10),
+      logGroup: getConfigLogGroup,
+      environment: {
+        SSM_PARAMETER_PATH: ssmParameterPath,
+      },
+    });
+
+    // Grant the Lambda read access to all parameters under the path
+    getConfigLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['ssm:GetParametersByPath'],
+      resources: [
+        `arn:aws:ssm:${this.region}:${this.account}:parameter${ssmParameterPath}`,
+        `arn:aws:ssm:${this.region}:${this.account}:parameter${ssmParameterPath}/*`,
+      ],
+    }));
+
+    // Add GetConfig endpoint to the existing API Gateway with Cognito authorization
+    const getConfig = props.api.root.addResource('config');
+    getConfig.addMethod('GET', new apigateway.LambdaIntegration(getConfigLambda, {
+      timeout: cdk.Duration.seconds(10),
+    }), {
+      authorizer: props.auth,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
     /**
      * Nag Suppressions
      */
+    NagSuppressions.addResourceSuppressions(getConfigLambda, [
+      {
+        id: 'AwsSolutions-IAM4',
+        reason: 'Using AWS Lambda Basic Execution Role is acceptable for this sample application.',
+        appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole']
+      },
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'Wildcard on SSM parameter path is required to read all parameters under the secrets prefix.',
+        appliesTo: [
+          `Resource::arn:aws:ssm:${this.region}:${this.account}:parameter${ssmParameterPath}`,
+          `Resource::arn:aws:ssm:${this.region}:${this.account}:parameter${ssmParameterPath}/*`,
+        ]
+      }
+    ], true);
+
     NagSuppressions.addResourceSuppressions(getStageTokenLambda, [
       {
         id: 'AwsSolutions-IAM4',

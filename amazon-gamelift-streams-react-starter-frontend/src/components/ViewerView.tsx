@@ -12,7 +12,8 @@ import { IVSStageManager } from '../utils/IVSStageManager';
 import { ChatComponent } from './ChatComponent';
 import { VolumeControl } from './VolumeControl';
 import { generateUsername } from '../utils/usernameGenerator';
-import { APPSYNC_CONFIG, ENABLE_REMOTE_PLAYER_CONTROL, STREAM_SOURCE } from '../utils/constants';
+import { ENABLE_REMOTE_PLAYER_CONTROL, STREAM_SOURCE } from '../utils/constants';
+import { getAppSyncConfig } from '../utils/configService';
 import { RemoteStageStream } from '../types/ivs.types';
 import { ControlMessage, isViewerInviteMessage, isViewerInviteCancelledMessage } from '../types/chat.types';
 import './Views.css';
@@ -86,7 +87,7 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
   const inactivityTimeout = 5000 * 10000; // 5 seconds (configurable)
 
   // Chat Client
-  const [chatClient] = useState(() => new AppSyncChatClient(APPSYNC_CONFIG));
+  const [chatClient] = useState(() => new AppSyncChatClient(getAppSyncConfig()));
 
   // Handle control messages for viewer invites
   const handleControlMessage = (message: ControlMessage) => {

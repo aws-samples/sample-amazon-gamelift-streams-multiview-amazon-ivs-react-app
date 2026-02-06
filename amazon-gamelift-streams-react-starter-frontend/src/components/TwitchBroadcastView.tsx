@@ -10,7 +10,8 @@ import { fetchAuthSession } from 'aws-amplify/auth';
 import { AppSyncChatClient } from '../utils/AppSyncChatClient';
 import { ChatComponent } from './ChatComponent';
 import { generateUsername } from '../utils/usernameGenerator';
-import { APPSYNC_CONFIG, GAMELIFT_STREAMS_CONFIG } from '../utils/constants';
+import { GAMELIFT_STREAMS_CONFIG } from '../utils/constants';
+import { getAppSyncConfig } from '../utils/configService';
 import IVSBroadcastClient, { BASIC_LANDSCAPE } from 'amazon-ivs-web-broadcast';
 
 // Extend HTMLVideoElement and HTMLAudioElement to include captureStream method
@@ -105,7 +106,7 @@ export const TwitchBroadcastView: React.FC<TwitchBroadcastViewProps> = ({ user, 
   const webcamVideoRef = useRef<HTMLVideoElement>(null);
 
   // Chat Client
-  const [chatClient] = useState(() => new AppSyncChatClient(APPSYNC_CONFIG));
+  const [chatClient] = useState(() => new AppSyncChatClient(getAppSyncConfig()));
 
   // Initialize GameLift Streams SDK on mount
   useEffect(() => {
