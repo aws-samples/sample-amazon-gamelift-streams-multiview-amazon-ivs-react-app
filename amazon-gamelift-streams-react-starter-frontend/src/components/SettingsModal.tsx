@@ -286,7 +286,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {/* Direct Broadcast Configuration Tab */}
               {activeTab === 'broadcast' && ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST && GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.supportsDirectBroadcast && (
                 <>
-                  <div className="alert alert-info alert-info-custom">
+                  <div className="text-info mb-3 hide-on-mobile">
                     <i className="bi bi-info-circle me-1"></i>
                     These settings configure the video encoder on the GameLift instance for IVS broadcast.
                   </div>
