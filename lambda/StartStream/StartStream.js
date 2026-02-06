@@ -32,10 +32,13 @@ exports.handler = async function (event, context) {
       }
     }
 
-    // Use the first region from the Regions array to configure the client
-    // This ensures the API call goes to the correct regional endpoint
-    const targetRegion = body.Regions && body.Regions.length > 0 ? body.Regions[0] : undefined;
-    const gameLiftStreams = new GameLiftStreams({ region: targetRegion });
+    // Use the control plane region from the request to configure the client
+    // GameLift Streams control plane availability is limited to specific regions
+    const controlPlaneRegion = body.ControlPlaneRegion;
+    if (!controlPlaneRegion) {
+      throw new Error('ControlPlaneRegion is required');
+    }
+    const gameLiftStreams = new GameLiftStreams({ region: controlPlaneRegion });
 
     // Build the request parameters
     const requestParams = {

@@ -214,12 +214,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         onChange={(e) => setRegions([e.target.value])}
                         value={regions[0]}
                       >
-                        <option value="ap-northeast-1">ap-northeast-1</option>
-                        <option value="eu-central-1">eu-central-1</option>
-                        <option value="eu-west-1">eu-west-1</option>
-                        <option value="us-east-1">us-east-1</option>
-                        <option value="us-east-2">us-east-2</option>
-                        <option value="us-west-2">us-west-2</option>
+                        {(GAMELIFT_STREAMS_CONFIG.gameLibrary[selectedGame]?.availableGameplayRegions || []).map((region: string) => (
+                          <option key={region} value={region}>{region}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="col-md-6">

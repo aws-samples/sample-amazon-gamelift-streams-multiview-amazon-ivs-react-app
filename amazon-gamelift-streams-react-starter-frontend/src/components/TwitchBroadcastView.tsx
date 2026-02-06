@@ -74,7 +74,7 @@ export const TwitchBroadcastView: React.FC<TwitchBroadcastViewProps> = ({ user, 
   const [appId, setAppId] = useState(GAMELIFT_STREAMS_CONFIG.gameLibrary[Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary)[0]]?.applicationId || '');
   const [sessionId, setSessionId] = useState('');
   const [lastSessionId, setLastSessionId] = useState('');
-  const [regions, setRegions] = useState([GAMELIFT_STREAMS_CONFIG.defaultRegion]);
+  const [regions, setRegions] = useState([GAMELIFT_STREAMS_CONFIG.gameLibrary[Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary)[0]]?.availableGameplayRegions?.[0] || 'us-west-2']);
   const [inputEnabled, setInputEnabled] = useState(false);
   const [isStreamStarting, setIsStreamStarting] = useState(false);
 
@@ -212,6 +212,7 @@ export const TwitchBroadcastView: React.FC<TwitchBroadcastViewProps> = ({ user, 
       setSelectedGame(gameName);
       setSgId(gameConfig.streamGroupId);
       setAppId(gameConfig.applicationId);
+      setRegions([gameConfig.availableGameplayRegions?.[0] || 'us-west-2']);
     }
   };
 
@@ -303,7 +304,8 @@ export const TwitchBroadcastView: React.FC<TwitchBroadcastViewProps> = ({ user, 
       AppIdentifier: appId,
       SGIdentifier: sgId,
       SignalRequest: signalRequest ?? '',
-      Regions: regions
+      Regions: regions,
+      ControlPlaneRegion: GAMELIFT_STREAMS_CONFIG.gameLiftStreamsControlPlaneRegion,
     };
 
     try {
@@ -337,6 +339,7 @@ export const TwitchBroadcastView: React.FC<TwitchBroadcastViewProps> = ({ user, 
     const payload = {
       SessionIdentifier: sessionId,
       SignalRequest: signalRequest ?? '',
+      ControlPlaneRegion: GAMELIFT_STREAMS_CONFIG.gameLiftStreamsControlPlaneRegion,
     };
 
     try {
@@ -371,6 +374,9 @@ export const TwitchBroadcastView: React.FC<TwitchBroadcastViewProps> = ({ user, 
           apiName: 'demo-api',
           path: `/session/${encodeURIComponent(sg)}/${encodeURIComponent(arn)}`,
           options: {
+            queryParams: {
+              controlPlaneRegion: GAMELIFT_STREAMS_CONFIG.gameLiftStreamsControlPlaneRegion,
+            },
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${(await fetchAuthSession()).tokens?.idToken?.toString()}`

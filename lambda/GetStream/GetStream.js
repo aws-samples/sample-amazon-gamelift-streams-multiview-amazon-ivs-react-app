@@ -18,12 +18,14 @@ exports.handler = async function (event, context) {
   logger.addContext(context);
   const { sg, arn } = event.pathParameters || {};
   try {
-    // Extract region from the stream session ARN (format: arn:aws:gameliftstreams:REGION:ACCOUNT:...)
-    const decodedArn = decodeURIComponent(arn);
-    const arnParts = decodedArn.split(':');
-    const targetRegion = arnParts.length >= 4 ? arnParts[3] : undefined;
+    // Use the control plane region from the query string to configure the client
+    // GameLift Streams control plane availability is limited to specific regions
+    const controlPlaneRegion = event.queryStringParameters?.controlPlaneRegion;
+    if (!controlPlaneRegion) {
+      throw new Error('controlPlaneRegion query parameter is required');
+    }
 
-    const gameLiftStreams = new GameLiftStreams({ region: targetRegion });
+    const gameLiftStreams = new GameLiftStreams({ region: controlPlaneRegion });
 
     let streamSession = await gameLiftStreams.getStreamSession({
       Identifier: decodeURIComponent(sg),

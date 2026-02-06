@@ -122,7 +122,8 @@ It is important to understand the difference between Amazon GameLift Streams `Pr
         - Each game configuration includes `applicationId`, `streamGroupId`, and `supportsDirectBroadcast` properties
         - The Player View will show a dropdown to select between configured games
         - **Important**: The Interactive Play Testing view only supports games with `supportsDirectBroadcast: true`
-    - Update `GAMELIFT_STREAMS_CONFIG.defaultRegion` with your preferred AWS region (default is `us-west-2`)
+    - Update `GAMELIFT_STREAMS_CONFIG.gameLiftStreamsControlPlaneRegion` with the region where your GameLift Streams control plane resources are deployed
+    - For each game, configure `availableGameplayRegions` with the regions your stream group supports
     - Update `API_CONFIG.endpoint` with the API endpoint from step 6 above. **Ensure that the API endpoint has no trailing slash `/` at the end**.
 11. Within the `/amazon-gamelift-streams-react-starter-frontend` directory, run `npm run build` to build the single page application frontend. Don't forget that if you make changes to your frontend, you need to re-build with `npm run build` before redeploying the frontend cdk stack.
 12. Run `cdk deploy AmazonGameliftStreamsReactStarterFrontendStack` at the root level of this repository, to deploy the web frontend.
@@ -547,18 +548,22 @@ export const GAMELIFT_STREAMS_CONFIG = {
             applicationId: 'a-gx0dbYn9h',
             streamGroupId: 'sg-qZSCl3bBM',
             supportsDirectBroadcast: false, // Player View only
+            supportsCouchCoop: false,
+            availableGameplayRegions: ['us-west-2'],
         },
         'Racing Demo': {
             applicationId: 'a-HLqLlLfPc',
             streamGroupId: 'sg-Ou8KqwAbq',
             supportsDirectBroadcast: true, // Available in both Player View and Interactive Play Testing
+            supportsCouchCoop: false,
+            availableGameplayRegions: ['us-west-2', 'eu-west-2'],
         },
     },
-    defaultRegion: 'us-west-2',
+    gameLiftStreamsControlPlaneRegion: 'us-west-2',
 };
 ```
 
-This configuration provides flexibility to work with multiple games. Games with `supportsDirectBroadcast: true` are available in both the Player View and Interactive Play Testing view, while games with `supportsDirectBroadcast: false` are only available in the Player View.
+This configuration provides flexibility to work with multiple games. Games with `supportsDirectBroadcast: true` are available in both the Player View and Interactive Play Testing view, while games with `supportsDirectBroadcast: false` are only available in the Player View. Each game specifies its `availableGameplayRegions` — the regions configured in the stream group where gameplay sessions can be launched. The `gameLiftStreamsControlPlaneRegion` specifies the region where the GameLift Streams control plane API calls are made.
 
 ## Multi-Location Stream Groups
 

@@ -123,7 +123,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
     const gameConfig = firstGame ? GAMELIFT_STREAMS_CONFIG.gameLibrary[firstGame] : null;
     return gameConfig?.applicationId || '';
   });
-  const [regions, setRegions] = useState<string[]>([GAMELIFT_STREAMS_CONFIG.defaultRegion]);
+  const [regions, setRegions] = useState<string[]>([GAMELIFT_STREAMS_CONFIG.gameLibrary[Object.keys(GAMELIFT_STREAMS_CONFIG.gameLibrary)[0]]?.availableGameplayRegions?.[0] || 'us-west-2']);
   const [demoMode, setDemoMode] = useState(false);
   const [isDirectBroadcastStarting, setIsDirectBroadcastStarting] = useState(false);
 
@@ -132,7 +132,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
     encoderType: 'gpu',
     videoWidth: 1280,
     videoHeight: 720,
-    videoFramerate: 30,
+    videoFramerate: 60,
     videoBitrate: 6000,
     enableAudio: true,
     audioBitrate: 128000,
@@ -541,6 +541,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
     if (gameConfig) {
       setAppId(gameConfig.applicationId);
       setSgId(gameConfig.streamGroupId);
+      setRegions([gameConfig.availableGameplayRegions?.[0] || 'us-west-2']);
     }
   };
 
@@ -637,6 +638,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
         SGIdentifier: sgId,
         SignalRequest: signalRequest ?? '',
         Regions: regions,
+        ControlPlaneRegion: GAMELIFT_STREAMS_CONFIG.gameLiftStreamsControlPlaneRegion,
         // Include IVS environment variables for direct broadcast games
         ...(shouldIncludeEnvVars && {
           AdditionalEnvironmentVariables: {
@@ -698,6 +700,9 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
           apiName: 'demo-api',
           path: `/session/${encodeURIComponent(sg)}/${encodeURIComponent(arn)}`,
           options: {
+            queryParams: {
+              controlPlaneRegion: GAMELIFT_STREAMS_CONFIG.gameLiftStreamsControlPlaneRegion,
+            },
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${(await fetchAuthSession()).tokens?.idToken?.toString()}`
@@ -1845,6 +1850,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
           const payload = {
             SessionIdentifier: transferredSessionId,
             SignalRequest: signalRequest ?? '',
+            ControlPlaneRegion: GAMELIFT_STREAMS_CONFIG.gameLiftStreamsControlPlaneRegion,
           };
 
           const restOperation = post({

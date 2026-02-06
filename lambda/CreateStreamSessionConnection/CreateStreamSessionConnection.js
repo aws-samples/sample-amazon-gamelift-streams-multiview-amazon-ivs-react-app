@@ -22,11 +22,14 @@ exports.handler = async function (event, context) {
     const parts = body.SessionIdentifier.split("/");
     const sg_arn = parts[parts.length - 2];
 
-    // Extract region from the session ARN (format: arn:aws:gameliftstreams:REGION:ACCOUNT:...)
-    const arnParts = body.SessionIdentifier.split(':');
-    const targetRegion = arnParts.length >= 4 ? arnParts[3] : undefined;
+    // Use the control plane region from the request to configure the client
+    // GameLift Streams control plane availability is limited to specific regions
+    const controlPlaneRegion = body.ControlPlaneRegion;
+    if (!controlPlaneRegion) {
+      throw new Error('ControlPlaneRegion is required');
+    }
 
-    const gameLiftStreams = new GameLiftStreams({ region: targetRegion });
+    const gameLiftStreams = new GameLiftStreams({ region: controlPlaneRegion });
 
     let streamSession = await gameLiftStreams.createStreamSessionConnection({
       Identifier: sg_arn,

@@ -39,15 +39,17 @@ export const GAMELIFT_STREAMS_CONFIG = {
       streamGroupId: 'sg-XXXXXXXXXXXXX', // Your GameLift Streams Stream Group ID
       supportsDirectBroadcast: true, // Whether this game supports GameLift-IVS Direct Broadcast
       supportsCouchCoop: true, // Whether this game supports couch co-op control for viewers
+      availableGameplayRegions: ['us-west-2'], // Regions configured in the stream group for gameplay
     },
     "Another Game": {
       applicationId: 'a-YYYYYYYYYYYYY', // Another GameLift Streams Application ID
       streamGroupId: 'sg-YYYYYYYYYYYYY', // Another GameLift Streams Stream Group ID
       supportsDirectBroadcast: false, // This game doesn't support direct broadcast (Player View only)
       supportsCouchCoop: false, // This game doesn't support couch co-op
+      availableGameplayRegions: ['us-west-2', 'eu-west-2'], // Regions configured in the stream group for gameplay
     }
   },
-  defaultRegion: 'us-west-2' // Your preferred AWS region
+  gameLiftStreamsControlPlaneRegion: 'us-west-2', // The region where your GameLift Streams control plane resources are deployed
 };
 
 // IVS Stage Configuration
