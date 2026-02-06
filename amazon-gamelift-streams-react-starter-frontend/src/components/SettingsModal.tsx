@@ -30,6 +30,7 @@ interface SettingsModalProps {
   
   // Broadcast Config
   broadcastConfig: {
+    ingestType: string;
     encoderType: string;
     videoWidth: number;
     videoHeight: number;
@@ -39,6 +40,8 @@ interface SettingsModalProps {
     audioBitrate: number;
     debugPipeline: boolean;
     debugLevel: number;
+    streamKey: string;
+    rtmpEndpoint: string;
   };
   
   // Event Handlers
@@ -287,6 +290,61 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <i className="bi bi-info-circle me-1"></i>
                     These settings configure the video encoder on the GameLift instance for IVS broadcast.
                   </div>
+
+                  {/* Ingest Type Selection */}
+                  <div className="row g-3 mb-4">
+                    <div className="col-md-12">
+                      <label htmlFor="ingestType" className="form-label">Ingest Type</label>
+                      <select
+                        className="form-select"
+                        id="ingestType"
+                        value={broadcastConfig.ingestType}
+                        onChange={(e) => setBroadcastConfig({...broadcastConfig, ingestType: e.target.value})}
+                      >
+                        <option value="whip">WHIP Ingest (WebRTC)</option>
+                        <option value="rtmp">RTMP Ingest</option>
+                      </select>
+                      <small className="form-text form-text-muted">
+                        {broadcastConfig.ingestType === 'whip'
+                          ? 'WebRTC-based ingest with low latency'
+                          : 'Traditional RTMP streaming protocol'}
+                      </small>
+                    </div>
+                  </div>
+
+                  {/* RTMP Configuration (only shown for RTMP ingest) */}
+                  {broadcastConfig.ingestType === 'rtmp' && (
+                    <div className="row g-3 mb-4">
+                      <div className="col-md-6">
+                        <label htmlFor="rtmpEndpoint" className="form-label">RTMP Endpoint</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="rtmpEndpoint"
+                          value={broadcastConfig.rtmpEndpoint}
+                          onChange={(e) => setBroadcastConfig({...broadcastConfig, rtmpEndpoint: e.target.value})}
+                          placeholder="rtmp://your-endpoint.example.com/live"
+                        />
+                        <small className="form-text form-text-muted">
+                          Your RTMP ingest endpoint URL
+                        </small>
+                      </div>
+                      <div className="col-md-6">
+                        <label htmlFor="streamKey" className="form-label">Stream Key</label>
+                        <input
+                          type="password"
+                          className="form-control"
+                          id="streamKey"
+                          value={broadcastConfig.streamKey}
+                          onChange={(e) => setBroadcastConfig({...broadcastConfig, streamKey: e.target.value})}
+                          placeholder="Enter your RTMP stream key"
+                        />
+                        <small className="form-text form-text-muted">
+                          Your RTMP stream key
+                        </small>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Encoder Options */}
                   {/* <h6 className="mb-3">Encoder Options</h6> */}

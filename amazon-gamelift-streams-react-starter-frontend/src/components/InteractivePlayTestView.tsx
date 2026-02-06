@@ -129,6 +129,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
 
   // Broadcast Configuration State
   const [broadcastConfig, setBroadcastConfig] = useState({
+    ingestType: 'whip',
     encoderType: 'gpu',
     videoWidth: 1280,
     videoHeight: 720,
@@ -137,7 +138,9 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
     enableAudio: true,
     audioBitrate: 128000,
     debugPipeline: false,
-    debugLevel: 0
+    debugLevel: 0,
+    streamKey: '',
+    rtmpEndpoint: '',
   });
 
   // Settings Modal State
@@ -633,27 +636,42 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
         shouldInclude: shouldIncludeEnvVars
       });
       
+      // Build environment variables based on ingest type
+      let envVars: Record<string, string> | undefined;
+      if (shouldIncludeEnvVars) {
+        envVars = {
+          ENCODER_TYPE: broadcastConfig.encoderType,
+          VIDEO_WIDTH: broadcastConfig.videoWidth.toString(),
+          VIDEO_HEIGHT: broadcastConfig.videoHeight.toString(),
+          VIDEO_FRAMERATE: broadcastConfig.videoFramerate.toString(),
+          VIDEO_BITRATE: broadcastConfig.videoBitrate.toString(),
+          ENABLE_AUDIO: broadcastConfig.enableAudio.toString(),
+          AUDIO_BITRATE: broadcastConfig.audioBitrate.toString(),
+          DEBUG_PIPELINE: broadcastConfig.debugPipeline.toString(),
+          GST_DEBUG: broadcastConfig.debugLevel.toString()
+        };
+
+        // Add ingest-specific variables
+        if (broadcastConfig.ingestType === 'rtmp') {
+          envVars.RTMP_ENDPOINT = broadcastConfig.rtmpEndpoint;
+          envVars.STREAM_KEY = broadcastConfig.streamKey;
+          envVars.INGEST_TYPE = 'rtmp';
+        } else {
+          envVars.IVS_WHIP_ENDPOINT = IVS_WHIP_ENDPOINT;
+          envVars.IVS_STAGE_TOKEN = gameLiftPublishToken || '';
+          envVars.INGEST_TYPE = 'whip';
+        }
+      }
+
       const payload = {
         AppIdentifier: appId,
         SGIdentifier: sgId,
         SignalRequest: signalRequest ?? '',
         Regions: regions,
         ControlPlaneRegion: GAMELIFT_STREAMS_CONFIG.gameLiftStreamsControlPlaneRegion,
-        // Include IVS environment variables for direct broadcast games
-        ...(shouldIncludeEnvVars && {
-          AdditionalEnvironmentVariables: {
-            IVS_WHIP_ENDPOINT: IVS_WHIP_ENDPOINT,
-            IVS_STAGE_TOKEN: gameLiftPublishToken,
-            ENCODER_TYPE: broadcastConfig.encoderType,
-            VIDEO_WIDTH: broadcastConfig.videoWidth.toString(),
-            VIDEO_HEIGHT: broadcastConfig.videoHeight.toString(),
-            VIDEO_FRAMERATE: broadcastConfig.videoFramerate.toString(),
-            VIDEO_BITRATE: broadcastConfig.videoBitrate.toString(),
-            ENABLE_AUDIO: broadcastConfig.enableAudio.toString(),
-            AUDIO_BITRATE: broadcastConfig.audioBitrate.toString(),
-            DEBUG_PIPELINE: broadcastConfig.debugPipeline.toString(),
-            GST_DEBUG: broadcastConfig.debugLevel.toString()
-          }
+        // Include environment variables for direct broadcast games
+        ...(envVars && {
+          AdditionalEnvironmentVariables: envVars
         })
       };
 
