@@ -1017,11 +1017,13 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
     <>
       <div className="view-container">
         {/* Header */}
-        <nav className="navbar navbar-expand-lg navbar-dark view-header p-1">
+        <nav className="navbar navbar-expand-lg navbar-dark view-header p-2">
           <div className="container-fluid">
-            <div className="navbar-brand">
+            <div className="navbar-brand d-flex">
               <h2 className="mb-0">Amazon GameLift Streams + IVS (Viewer)</h2>
-              <span className="username">@{username}</span>
+              <div className="align-self-center d-none d-lg-flex">
+                <span className="ms-3 username">@{username}</span>
+              </div>
             </div>
             <button 
               className="navbar-toggler border-0" 

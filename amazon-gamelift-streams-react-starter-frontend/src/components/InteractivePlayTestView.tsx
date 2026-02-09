@@ -2688,11 +2688,11 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       </div>
 
       {/* Header */}
-      <nav className="navbar navbar-expand-lg navbar-dark playtester-header p-1" role="banner">
+      <nav className="navbar navbar-expand-lg navbar-dark playtester-header p-2" role="banner">
         <div className="container-fluid">
-          <div className="navbar-brand">
+          <div className="navbar-brand d-flex">
             <h2 className="mb-0">Interactive Play Testing</h2>
-            <div className="header-username-container">
+            <div className="header-username-container align-self-center ms-3 mt-0 d-none d-lg-inline">
               <span className="username" aria-label={`Logged in as ${username}, role: ${userRole}`}>
                 @{username}
               </span>
