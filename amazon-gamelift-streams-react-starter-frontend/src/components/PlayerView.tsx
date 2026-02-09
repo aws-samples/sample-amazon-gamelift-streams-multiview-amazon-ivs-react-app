@@ -1334,7 +1334,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
     <>
       <div className="view-container">
         {/* Header */}
-        <nav className="navbar navbar-expand-lg navbar-dark view-header">
+        <nav className="navbar navbar-expand-lg navbar-dark view-header p-1">
           <div className="container-fluid">
             <div className="navbar-brand">
               <h2 className="mb-0">Amazon GameLift Streams + IVS (Player View)</h2>

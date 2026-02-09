@@ -2688,7 +2688,7 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
       </div>
 
       {/* Header */}
-      <nav className="navbar navbar-expand-lg navbar-dark playtester-header" role="banner">
+      <nav className="navbar navbar-expand-lg navbar-dark playtester-header p-1" role="banner">
         <div className="container-fluid">
           <div className="navbar-brand">
             <h2 className="mb-0">Interactive Play Testing</h2>
