@@ -14,6 +14,7 @@ import { VolumeControl } from './VolumeControl';
 import { generateUsername } from '../utils/usernameGenerator';
 import { ENABLE_REMOTE_PLAYER_CONTROL, STREAM_SOURCE } from '../utils/constants';
 import { getAppSyncConfig } from '../utils/configService';
+import { MessageTransport, createCouchCoopTransport } from '../utils/transports';
 import { RemoteStageStream } from '../types/ivs.types';
 import { ControlMessage, isViewerInviteMessage, isViewerInviteCancelledMessage } from '../types/chat.types';
 import './Views.css';
@@ -88,6 +89,9 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
 
   // Chat Client
   const [chatClient] = useState(() => new AppSyncChatClient(getAppSyncConfig()));
+
+  // Couch Co-op Transport (may use AppSync or PubNub depending on COUCH_COOP_TRANSPORT flag)
+  const couchTransportRef = useRef<MessageTransport | null>(null);
 
   // Handle control messages for viewer invites
   const handleControlMessage = (message: ControlMessage) => {
@@ -377,8 +381,6 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
     const stageManager = stageManagerRef.current;
     const webcamManager = webcamStageManagerRef.current;
     const client = chatClient;
-    
-    // Don't auto-connect - wait for user interaction
 
     // Cleanup on unmount
     return () => {
@@ -389,6 +391,12 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
         webcamManager.leaveStage();
       }
       client.disconnect();
+      
+      // Disconnect couch co-op transport
+      if (couchTransportRef.current) {
+        couchTransportRef.current.disconnect();
+        couchTransportRef.current = null;
+      }
       
       // Cancel animation frame if running
       if (animationFrameRef.current !== null) {
@@ -475,13 +483,30 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
   };
 
   /**
+   * Publish a couch co-op event via the configured transport.
+   * Uses the transport ref directly — no silent fallback to AppSync.
+   */
+  const publishCouchCoopEvent = async (event: any): Promise<void> => {
+    const transport = couchTransportRef.current;
+    if (!transport) {
+      console.warn('[CouchCoop] Transport not initialized — is the stage connected?');
+      throw new Error('Couch co-op transport not initialized');
+    }
+    if (!transport.isReady()) {
+      console.warn('[CouchCoop] Transport not ready, attempting reconnect...');
+      await transport.connect();
+    }
+    await transport.publishRaw(event);
+  };
+
+  /**
    * Spawn couch co-op player in the game
    */
   const spawnCouchCoopPlayer = async () => {
-    // if (isPlayerSpawned) {
-    //   console.log('Player already spawned');
-    //   return;
-    // }
+    if (isPlayerSpawned) {
+      console.log('Player already spawned');
+      return;
+    }
 
     try {
       const spawnEvent = {
@@ -491,8 +516,8 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
         timestamp: new Date().toISOString()
       };
 
-      // Publish spawn event using publishRaw
-      await (chatClient as any).publishRaw(spawnEvent);
+      // Publish spawn event via couch co-op transport
+      await publishCouchCoopEvent(spawnEvent);
       
       console.log('Sent SPAWN_PLAYER event for user:', username);
       setIsPlayerSpawned(true);
@@ -534,10 +559,9 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
 
       console.log('Despawn event:', despawnEvent);
 
-      // Publish despawn event using publishRaw
-      const result = await (chatClient as any).publishRaw(despawnEvent);
+      // Publish despawn event via couch co-op transport
+      await publishCouchCoopEvent(despawnEvent);
       
-      console.log('DESPAWN_PLAYER publishRaw result:', result);
       console.log('Successfully sent DESPAWN_PLAYER event for user:', username);
       
       setIsPlayerSpawned(false);
@@ -596,8 +620,8 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
         timestamp: new Date().toISOString()
       };
 
-      // Publish move event using publishRaw
-      await (chatClient as any).publishRaw(moveEvent);
+      // Publish move event via couch co-op transport
+      await publishCouchCoopEvent(moveEvent);
       
       console.log('Sent MOVE_PLAYER event:', keys);
     } catch (error) {
@@ -806,6 +830,12 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
 
       // Join the stage
       await stageManagerRef.current.joinStage();
+
+      // Initialize couch co-op transport (PubNub or AppSync depending on feature flag)
+      if (!couchTransportRef.current) {
+        couchTransportRef.current = createCouchCoopTransport(chatClient, username);
+        await couchTransportRef.current.connect();
+      }
 
       console.log('Successfully joined IVS stage as viewer', newStage);
     } catch (error) {

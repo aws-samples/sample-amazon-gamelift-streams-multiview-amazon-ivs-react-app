@@ -71,6 +71,13 @@ export const ENABLE_GAMELIFT_IVS_DIRECT_BROADCAST = false;
 // This feature allows viewers to spawn and control players in games that support it
 export const ENABLE_REMOTE_PLAYER_CONTROL = false;
 
+// Couch Co-op Transport Provider
+// Controls which pub/sub service delivers couch co-op commands (SPAWN_PLAYER, MOVE_PLAYER, etc.)
+// Supported values: 'appsync' (default) | 'pubnub'
+// When using 'pubnub', add PUBNUB_PUBLISH_KEY, PUBNUB_SUBSCRIBE_KEY, and PUBNUB_CHANNEL_NAME
+// to your SSM parameter store under the app's config path.
+export const COUCH_COOP_TRANSPORT: string = 'appsync';
+
 // Color Scheme (Inspired by Game Screenshots)
 // These values can remain as-is or be customized to match your branding
 export const COLORS = {
