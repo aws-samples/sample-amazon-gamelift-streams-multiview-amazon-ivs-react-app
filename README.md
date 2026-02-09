@@ -14,6 +14,8 @@ The application is built with [ReactJS](https://react.dev/), an API built with [
 
 **Want to enable couch co-op control for viewers?** See [COUCH_COOP_CONTROL.md](./COUCH_COOP_CONTROL.md) for a guide on the Couch Co-op Control feature, which allows viewers to spawn and control couch co-op players directly in supported games using keyboard commands sent via AppSync. This feature includes configurable rate limiting (20 RPS by default) and could be enhanced with alternative pub/sub solutions for higher throughput.
 
+**Want to use PubNub (or another provider) for couch co-op commands?** The couch co-op transport layer is abstracted behind a `MessageTransport` interface, allowing you to swap the underlying pub/sub provider by changing a single constant (`COUCH_COOP_TRANSPORT` in `constants.ts`). Chat and viewer invite messages always flow through AppSync regardless of this setting. See [PUBNUB_TRANSPORT_SETUP.md](./PUBNUB_TRANSPORT_SETUP.md) for setup instructions, SSM configuration, and how to add custom providers.
+
 ## Application Features
 
 This sample demonstrates three distinct user experiences:
@@ -457,6 +459,9 @@ Response Body:
     APPSYNC_REALTIME_ENDPOINT: string;  // AppSync Realtime WebSocket endpoint
     APPSYNC_CHANNEL_NAME: string;       // AppSync channel namespace
     STREAM_KEY: string;                 // Stream key for RTMP ingest
+    PUBNUB_PUBLISH_KEY?: string;        // PubNub publish key (when using PubNub transport)
+    PUBNUB_SUBSCRIBE_KEY?: string;      // PubNub subscribe key (when using PubNub transport)
+    PUBNUB_CHANNEL_NAME?: string;       // PubNub channel name (when using PubNub transport)
     // Additional sensitive values are automatically included
 }
 ```
