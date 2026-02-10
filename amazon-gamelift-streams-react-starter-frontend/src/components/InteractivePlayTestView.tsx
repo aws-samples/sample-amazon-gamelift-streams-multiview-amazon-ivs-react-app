@@ -2461,6 +2461,12 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
     if (!hasGameplayControl && (currentController || gameplayStream)) {
       console.log('Rendering Request Takeover button');
       const isRequesting = takeoverState.status === 'requesting';
+
+      // Hide the button once takeover has been approved or is in progress
+      if (takeoverState.status === 'approved' || takeoverState.status === 'in_progress') {
+        return null;
+      }
+
       return (
         <button 
           className="btn btn-primary"

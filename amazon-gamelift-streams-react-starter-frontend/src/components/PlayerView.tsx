@@ -1422,14 +1422,22 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
                   </div>
                 )}
 
-                {/* Expand Sidebar Button (shown when sidebar is collapsed) */}
-                {isSidebarCollapsed && (
+                {/* Sidebar Toggle Button (always visible on gameplay video) */}
+                {isSidebarCollapsed ? (
                   <button
                     className="expand-sidebar-btn"
                     onClick={() => setIsSidebarCollapsed(false)}
                     title="Show chat"
                   >
                     <i className="bi bi-chat-left-text"></i>
+                  </button>
+                ) : (
+                  <button
+                    className="expand-sidebar-btn"
+                    onClick={() => setIsSidebarCollapsed(true)}
+                    title="Hide chat"
+                  >
+                    <i className="bi bi-chevron-right"></i>
                   </button>
                 )}
               </div>
@@ -1506,14 +1514,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
           <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
             {/* Webcam Area (Area 2) */}
             <div className="webcam-video-container video-container">
-              {/* Collapse Sidebar Button */}
-              <button
-                className="collapse-sidebar-btn"
-                onClick={() => setIsSidebarCollapsed(true)}
-                title="Hide chat"
-              >
-                <i className="bi bi-chevron-right"></i>
-              </button>
               {/* Broadcast Status Indicator */}
               <div className="broadcast-status">
                 <div className={`status-dot ${isWebcamBroadcasting ? '' : 'inactive'}`}></div>
