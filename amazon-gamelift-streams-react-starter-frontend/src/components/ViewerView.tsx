@@ -40,7 +40,10 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    const isTouchDevice = navigator.maxTouchPoints > 0;
+    return isTouchDevice && window.innerWidth <= 1024;
+  });
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   
   // Couch Co-op Control State
@@ -1016,6 +1019,14 @@ export const ViewerView: React.FC<ViewerViewProps> = ({ signOut }) => {
   return (
     <>
       <div className="view-container">
+        {/* Portrait Mode Overlay - suggests landscape on mobile */}
+        <div className="portrait-overlay" aria-live="polite">
+          <div className="portrait-overlay-content">
+            <i className="bi bi-phone-landscape" style={{ fontSize: '3rem' }}></i>
+            <p>Rotate your device to landscape for the best experience</p>
+          </div>
+        </div>
+
         {/* Header */}
         <nav className="navbar navbar-expand-lg navbar-dark view-header p-2">
           <div className="container-fluid">

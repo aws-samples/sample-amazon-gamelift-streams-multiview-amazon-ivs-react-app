@@ -782,6 +782,80 @@
   }
 }
 
+/* ========================================
+   Portrait Mode Overlay
+   ======================================== */
+
+/* Hidden by default */
+.portrait-overlay {
+  display: none;
+}
+
+/* Show only on mobile-sized touch devices in portrait orientation */
+@media (pointer: coarse) and (max-width: 768px) and (orientation: portrait) {
+  .portrait-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 30, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+  }
+
+  .portrait-overlay-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 2rem;
+    animation: gentle-pulse 2s ease-in-out infinite;
+  }
+
+  .portrait-overlay-content p {
+    font-size: 1.1rem;
+    margin: 0;
+    opacity: 0.85;
+    max-width: 260px;
+  }
+
+  @keyframes gentle-pulse {
+
+    0%,
+    100% {
+      opacity: 0.85;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
+}
+
+/* Mobile landscape - maximize gameplay video area */
+@media (pointer: coarse) and (max-height: 500px) and (orientation: landscape) {
+  .view-header {
+    padding: 0.25rem 0.5rem;
+  }
+
+  .view-header h2 {
+    font-size: 1rem;
+  }
+
+  .gameplay-area {
+    padding: 0;
+    max-height: 100vh !important;
+  }
+
+  .gameplay-video-container {
+    border-radius: 0;
+  }
+}
+
 
 /* Modal Dialog Z-Index Fix */
 .modal.show {
