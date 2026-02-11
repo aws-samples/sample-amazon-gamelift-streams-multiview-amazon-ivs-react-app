@@ -10,6 +10,6 @@
   "license": "ISC",
   "dependencies": {
     "@aws-lambda-powertools/logger": "^2.11.0",
-    "@aws-sdk/client-ivs-realtime": "^3.782.0"
+    "@aws-sdk/client-ivs-realtime": "^3.987.0"
   }
 }
