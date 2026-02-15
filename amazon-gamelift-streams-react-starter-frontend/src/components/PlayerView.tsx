@@ -125,7 +125,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
     encoderType: 'gpu',
     videoWidth: 1280,
     videoHeight: 720,
-    videoFramerate: 60,
+    videoFramerate: 24,
     videoBitrate: 6000,
     enableAudio: true,
     audioBitrate: 128000,
