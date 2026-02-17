@@ -455,7 +455,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       >
                         <option value="24">24 fps</option>
                         <option value="30">30 fps</option>
-                        <option value="60">60 fps</option>
+                        {/* <option value="60">60 fps</option> */}
                       </select>
                     </div>
                     <div className="col-md-3">
@@ -467,7 +467,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         value={broadcastConfig.videoBitrate}
                         onChange={(e) => setBroadcastConfig({...broadcastConfig, videoBitrate: parseInt(e.target.value) || 4000})}
                         min="1000"
-                        max="15000"
+                        max="6000"
                         step="500"
                       />
                     </div>

@@ -126,7 +126,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
     videoWidth: 1280,
     videoHeight: 720,
     videoFramerate: 24,
-    videoBitrate: 6000,
+    videoBitrate: 4000,
     enableAudio: true,
     audioBitrate: 128000,
     debugPipeline: false,
@@ -702,7 +702,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
         VIDEO_BITRATE: broadcastConfig.videoBitrate.toString(),
         ENABLE_AUDIO: broadcastConfig.enableAudio.toString(),
         AUDIO_BITRATE: broadcastConfig.audioBitrate.toString(),
-        DEBUG_PIPELINE: broadcastConfig.debugPipeline.toString(),
+        DEBUG_PIPELINE: (broadcastConfig.debugLevel !== 0).toString(),
         GST_DEBUG: broadcastConfig.debugLevel.toString()
       };
 
