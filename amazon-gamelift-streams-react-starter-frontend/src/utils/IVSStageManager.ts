@@ -44,7 +44,8 @@ export class IVSStageManager {
     username: string,
     capabilities: ('PUBLISH' | 'SUBSCRIBE')[],
     streamSource?: 'gameplay' | 'player_webcam' | 'participant_webcam',
-    supportsCouchCoop?: boolean
+    supportsCouchCoop?: boolean,
+    additionalAttributes?: Record<string, string>
   ): Promise<string> {
     try {
       const restOperation = post({
@@ -61,7 +62,8 @@ export class IVSStageManager {
             attributes: {
               username,
               ...(streamSource && { stream_source: streamSource }),
-              ...(supportsCouchCoop !== undefined && { supports_couch_coop: supportsCouchCoop.toString() })
+              ...(supportsCouchCoop !== undefined && { supports_couch_coop: supportsCouchCoop.toString() }),
+              ...additionalAttributes
             }
           }
         }

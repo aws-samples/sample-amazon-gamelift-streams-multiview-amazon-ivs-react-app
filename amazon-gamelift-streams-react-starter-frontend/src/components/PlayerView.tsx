@@ -674,7 +674,8 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ user, signOut }) => {
           `${username}-gamelift`,
           ['PUBLISH'],
           STREAM_SOURCE.GAMEPLAY as 'gameplay',
-          gameConfig?.supportsCouchCoop
+          gameConfig?.supportsCouchCoop,
+          { featured: 'true' }
         );
         console.log('Successfully generated IVS publish token for GameLift instance');
       } catch (tokenError) {

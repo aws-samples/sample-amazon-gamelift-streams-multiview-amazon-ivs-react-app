@@ -611,7 +611,8 @@ export const InteractivePlayTestView: React.FC<InteractivePlayTestViewProps> = (
             `${username}-gamelift`,
             ['PUBLISH'],
             'gameplay',
-            gameConfig?.supportsCouchCoop
+            gameConfig?.supportsCouchCoop,
+            { featured: 'true' }
           );
           console.log('Successfully generated IVS publish token for GameLift instance:', gameLiftPublishToken ? 'Token received' : 'Token is null');
         } catch (tokenError) {
