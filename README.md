@@ -30,15 +30,11 @@ All views include real-time chat and reaction features powered by AWS AppSync Ev
 
 This project uses the AWS Cloud Development Kit (CDK) to deploy the AWS Infrastructure. You can learn more about CDK [here](https://aws.amazon.com/cdk/). The CDK stacks included deploy the required resources for a fully functioning demo web page, but do not deploy the Amazon GameLift Streams resources themselves. You can add Amazon GameLift Streams application and stream group resources at any time, before or after the deployment of this sample. There is additional information about creating Amazon GameLift Streams resources below in the `Creating a GameLift Stream Application and Stream Group` section.
 
-Amazon IVS Broadcasting of GameLift Streams play can be accomplished via either direct broadcasting or the Amazon IVS Web Broadcast SDK (restreaming from the player's browser). See [GAMELIFT_IVS_DIRECT_BROADCAST.md](./GAMELIFT_IVS_DIRECT_BROADCAST.md) for a guide on the GameLift-IVS Direct Broadcast feature.
+Amazon IVS Broadcasting of GameLift Streams play can be accomplished via either direct broadcasting via the [GameLift Streams IVS Broadcast Sidecar Application (Sample)](https://github.com/aws-samples/sample-gamelift-streams-ivs-broadcast-sidecar/tree/main). See [GAMELIFT_IVS_DIRECT_BROADCAST.md](./GAMELIFT_IVS_DIRECT_BROADCAST.md) for a guide on the GameLift-IVS Direct Broadcast feature.
 
 ### Direct Broadcast Architecture
 
 ![gls-ivs-integration-direct-broadcast](images/Amazon-GameLift-Streams-Direct-Broadcast-reference-architecture.png)
-
-### Web Broadcast Architecture
-
-![gls-ivs-architecture](images/amazon-gamelift-streams-multiview-amazon-ivs-reference-architecture.png)
 
 ### Deploying
 
