@@ -4,7 +4,7 @@
 
 The GameLift-IVS Direct Broadcast feature integration enables Amazon GameLift instances to broadcast gameplay directly to Amazon IVS Real-Time Stages without restreaming from a browser. This approach significantly reduces latency and improves stream quality by eliminating the browser as a relay point.
 
-**Note**: This feature requires that your GameLift Application be deployed with a specific 'sidecar' application, which is not included in this repository. For more information on this sidecar, see the following repo: [GameLift Streams to IVS Streaming Client](https://github.com/aws-samples/sample-gls-ivs-streaming-client).
+**Note**: This feature requires that your GameLift Application be deployed with a specific 'sidecar' application, which is not included in this repository. For more information on this sidecar, see the following repo: [GameLift Streams to IVS Streaming Client](https://github.com/aws-samples/sample-gamelift-streams-ivs-broadcast-sidecar/tree/main).
 
 ### Traditional vs. Direct Broadcast
 
